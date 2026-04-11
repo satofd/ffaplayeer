@@ -65,6 +65,30 @@ public partial class MainWindow : Window
 
         AddHandler(DragDrop.DropEvent, OnDrop);
         KeyDown += OnKeyDown;
+        
+        var slider = this.FindControl<Slider>("SeekSlider");
+        if (slider != null)
+        {
+            slider.AddHandler(PointerPressedEvent, OnSliderPointerPressed, RoutingStrategies.Tunnel);
+            slider.AddHandler(PointerReleasedEvent, OnSliderPointerReleased, RoutingStrategies.Tunnel);
+        }
+    }
+
+    private void OnSliderPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.IsDraggingSlider = true;
+        }
+    }
+
+    private void OnSliderPointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if (sender is Slider slider && DataContext is MainViewModel vm)
+        {
+            vm.IsDraggingSlider = false;
+            vm.RequestSeek(slider.Value);
+        }
     }
 
     private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -113,14 +137,6 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel vm)
         {
             e.Handled = vm.ProcessShortcut(e.Key, e.KeyModifiers);
-        }
-    }
-
-    private void OnSliderPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
-    {
-        if (sender is Slider slider && DataContext is MainViewModel vm)
-        {
-            vm.RequestSeek(slider.Value);
         }
     }
 }

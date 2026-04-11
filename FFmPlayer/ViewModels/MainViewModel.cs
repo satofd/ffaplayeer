@@ -43,6 +43,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isPaused;
 
+    [ObservableProperty]
+    private bool _isDraggingSlider;
+
     public bool IsStopped => !IsPlaying && !IsPaused;
 
     [ObservableProperty]
@@ -186,31 +189,33 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPaused = true;
         _audioPlayer?.Pause();
         
-        while (true)
-        {
-            if (_videoFrames.TryDequeue(out var cachedFrame)) {
-                if (cachedFrame.IsEndOfStream) break;
+        if (_videoFrames.TryDequeue(out var cachedFrame)) {
+            if (!cachedFrame.IsEndOfStream) {
                 Position = cachedFrame.Pts;
-                if (VideoFrameBitmap != null)
-                {
-                    using var fb = VideoFrameBitmap.Lock();
-                    Marshal.Copy(cachedFrame.Data, 0, fb.Address, cachedFrame.Data.Length);
-                }
-                break;
+                UpdateVideoBitmap(cachedFrame);
             }
+        }
+    }
 
-            var type = _decoder.TryDecodeNextFrame(out double pts, out byte[] data, out _);
-            if (type == FFmpegDecoder.FrameType.EndOfStream || type == FFmpegDecoder.FrameType.Error) break;
-            if (type == FFmpegDecoder.FrameType.Video)
-            {
-                Position = pts;
-                if (VideoFrameBitmap != null)
-                {
-                    using var fb = VideoFrameBitmap.Lock();
-                    Marshal.Copy(data, 0, fb.Address, data.Length);
-                }
-                break;
-            }
+    private void UpdateVideoBitmap(VideoFrameData frame)
+    {
+        if (VideoFrameBitmap != null)
+        {
+            using var fb = VideoFrameBitmap.Lock();
+            int width = VideoFrameBitmap.PixelSize.Width;
+            int height = VideoFrameBitmap.PixelSize.Height;
+            int srcStride = width * 4;
+            int dstStride = fb.RowBytes;
+
+            if (srcStride == dstStride)
+                Marshal.Copy(frame.Data, 0, fb.Address, frame.Data.Length);
+            else
+                for (int y = 0; y < height; y++)
+                    Marshal.Copy(frame.Data, y * srcStride, fb.Address + y * dstStride, srcStride);
+                    
+            var temp = VideoFrameBitmap;
+            VideoFrameBitmap = null;
+            VideoFrameBitmap = temp;
         }
     }
 
@@ -312,20 +317,36 @@ public partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsStopped));
     }
 
+    private double _seekRequestTime = -1;
+
     private async Task DecodeLoopAsync(CancellationToken token)
     {
         try
         {
             while (!token.IsCancellationRequested)
             {
-                if (IsPaused || _decoder == null)
+                double target = Interlocked.Exchange(ref _seekRequestTime, -1);
+                if (target >= 0)
+                {
+                    _decoder?.RequestSeek(target);
+                    _audioPlayer?.ClearBuffer();
+                    while (_videoFrames.TryDequeue(out _)) { } 
+                    _baseSeconds = target;
+                    _audioPlayer?.ResetClock();
+                    Dispatcher.UIThread.Post(() => {
+                        if (!IsDraggingSlider) Position = target;
+                    });
+                    continue;
+                }
+
+                if (_decoder == null || (IsPaused && _videoFrames.Count >= 5))
                 {
                     await Task.Delay(50, token);
                     continue;
                 }
 
-                if (_videoFrames.Count >= _settings.FrameBufferSize || 
-                    (_audioPlayer != null && _audioPlayer.GetBufferedSeconds() > 4.0))
+                if (!IsPaused && (_videoFrames.Count >= _settings.FrameBufferSize || 
+                    (_audioPlayer != null && _audioPlayer.GetBufferedSeconds() > 4.0)))
                 {
                     await Task.Delay(10, token);
                     continue;
@@ -336,7 +357,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 if (type == FFmpegDecoder.FrameType.EndOfStream)
                 {
                     _videoFrames.Enqueue(new VideoFrameData { IsEndOfStream = true });
-                    break;
+                    // Wait a bit to not burn CPU if EOF
+                    await Task.Delay(500, token);
+                    continue;
                 }
                 
                 if (type == FFmpegDecoder.FrameType.Video)
@@ -397,13 +420,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
                     Dispatcher.UIThread.Post(() =>
                     {
-                        Position = frame.Pts;
-                        if (VideoFrameBitmap != null)
-                        {
-                            using var fb = VideoFrameBitmap.Lock();
-                            Marshal.Copy(frame.Data, 0, fb.Address, frame.Data.Length);
-                        }
-                        OnPropertyChanged(nameof(VideoFrameBitmap));
+                        if (!IsDraggingSlider) Position = frame.Pts;
+                        UpdateVideoBitmap(frame);
                     });
                 }
                 else
@@ -464,21 +482,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public void RequestSeek(double seconds)
     {
         if (_decoder == null || !IsPlaying) return;
-
-        bool wasPaused = IsPaused;
-        IsPaused = true;
-        
-        // Wait for decoder to pause naturally or just force it
-        _decoder.RequestSeek(seconds);
-        _audioPlayer?.ClearBuffer();
-        _videoFrames = new ConcurrentQueue<VideoFrameData>();
-        _baseSeconds = seconds;
-        
-        // In precise sync, we need to know how much audio we've pushed previously, so reset audio clock
-        _audioPlayer?.ResetClock();
-        Position = seconds;
-
-        if (!wasPaused) IsPaused = false;
+        Interlocked.Exchange(ref _seekRequestTime, seconds);
     }
 
     [RelayCommand]
