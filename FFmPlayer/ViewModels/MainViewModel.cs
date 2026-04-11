@@ -325,6 +325,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     private double _seekRequestTime = -1;
+    private bool _needsPreviewFrame = false;
 
     private async Task DecodeLoopAsync(CancellationToken token)
     {
@@ -341,6 +342,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     while (_videoFrames.TryDequeue(out _)) { } 
                     
                     targetSeekTimeAfterFlush = target;
+                    _needsPreviewFrame = true;
                     continue;
                 }
 
@@ -398,6 +400,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 if (type == FFmpegDecoder.FrameType.Video)
                 {
                     _videoFrames.Enqueue(new VideoFrameData { Pts = pts, Data = data });
+                    
+                    if (_needsPreviewFrame)
+                    {
+                        var previewData = data;
+                        _needsPreviewFrame = false;
+                        Dispatcher.UIThread.Post(() => {
+                            if (IsPaused) UpdateVideoBitmap(new VideoFrameData { Pts = pts, Data = previewData });
+                        });
+                    }
                 }
                 else if (type == FFmpegDecoder.FrameType.Audio)
                 {
