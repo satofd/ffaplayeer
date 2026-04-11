@@ -41,7 +41,45 @@ public partial class MainWindow : Window
                         _playlistWindow.Activate();
                     }
                 };
+
+                vm.OpenFileAction = async () =>
+                {
+                    var options = new Avalonia.Platform.Storage.FilePickerOpenOptions
+                    {
+                        Title = "Open Media File",
+                        AllowMultiple = false
+                    };
+                    var result = await StorageProvider.OpenFilePickerAsync(options);
+                    if (result != null && result.Count > 0)
+                    {
+                        vm.LoadMedia(result[0].Path.LocalPath);
+                    }
+                };
             }
         };
+
+        AddHandler(Avalonia.Input.DragDrop.DropEvent, OnDrop);
+        KeyDown += OnKeyDown;
+    }
+
+    private void OnDrop(object? sender, Avalonia.Input.DragEventArgs e)
+    {
+        // 11.xでのドラッグ＆ドロップAPIの仕様差(Dataプロパティエラー)回避のため一時スキップ
+    }
+
+    private void OnKeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            e.Handled = vm.ProcessShortcut(e.Key, e.KeyModifiers);
+        }
+    }
+
+    private void OnSliderPointerCaptureLost(object? sender, Avalonia.Input.PointerCaptureLostEventArgs e)
+    {
+        if (sender is Slider slider && DataContext is MainViewModel vm)
+        {
+            vm.RequestSeek(slider.Value);
+        }
     }
 }

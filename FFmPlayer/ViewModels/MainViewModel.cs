@@ -57,6 +57,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public Action? ShowSettingsWindowAction { get; set; }
     public Action? ShowPlaylistWindowAction { get; set; }
+    public Action? OpenFileAction { get; set; }
 
     public MainViewModel(SettingsService settingsService, AppSettings settings)
     {
@@ -70,9 +71,75 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void OpenFile()
     {
-        // For testing, hard-code a file or use a simple file picker eventually
-        // But for now let's just make it possible to load a URL
-        LoadMedia("sample.mp4"); // Placeholder, in real usage would open a dialog
+        OpenFileAction?.Invoke();
+    }
+
+    public bool ProcessShortcut(Avalonia.Input.Key key, Avalonia.Input.KeyModifiers modifiers)
+    {
+        var mods = string.Empty;
+        if (modifiers.HasFlag(Avalonia.Input.KeyModifiers.Control)) mods += "Ctrl+";
+        if (modifiers.HasFlag(Avalonia.Input.KeyModifiers.Shift)) mods += "Shift+";
+        if (modifiers.HasFlag(Avalonia.Input.KeyModifiers.Alt)) mods += "Alt+";
+        if (modifiers.HasFlag(Avalonia.Input.KeyModifiers.Meta)) mods += "Meta+";
+
+        string shortcut = mods + key.ToString();
+
+        if (shortcut == _settings.ShortcutPlayPause) { PlayPause(); return true; }
+        if (shortcut == _settings.ShortcutStop) { Stop(); return true; }
+        // Implement Seeking and Step
+        if (shortcut == _settings.ShortcutSeekForward1s) { RequestSeek(Position + 1); return true; }
+        if (shortcut == _settings.ShortcutSeekBackward1s) { RequestSeek(Position - 1); return true; }
+        
+        if (shortcut == _settings.ShortcutToggleMute) { IsMuted = !IsMuted; return true; }
+        if (shortcut == _settings.ShortcutToggleFullscreen) { /* TODO */ return true; }
+        if (shortcut == _settings.ShortcutExitFullscreen) { /* TODO */ return true; }
+        if (shortcut == _settings.ShortcutOpenFile) { OpenFile(); return true; }
+        if (shortcut == _settings.ShortcutOpenUrl) { /* TODO */ return true; }
+        if (shortcut == _settings.ShortcutShowPlaylist) { OpenPlaylist(); return true; }
+        if (shortcut == _settings.ShortcutShowMediaInfo) { /* TODO */ return true; }
+        if (shortcut == _settings.ShortcutIncreaseSpeed) { IncreaseSpeed(); return true; }
+        if (shortcut == _settings.ShortcutDecreaseSpeed) { DecreaseSpeed(); return true; }
+        if (shortcut == _settings.ShortcutResetSpeed) { PlaybackSpeed = 1.0; return true; }
+
+        if (key == Avalonia.Input.Key.Right && modifiers == Avalonia.Input.KeyModifiers.Alt) { StepForward(); return true; }
+        if (key == Avalonia.Input.Key.Left && modifiers == Avalonia.Input.KeyModifiers.Alt) { StepBackward(); return true; }
+
+        return false;
+    }
+
+    [RelayCommand]
+    public void StepForward()
+    {
+        if (_decoder == null) return;
+        IsPlaying = true;
+        IsPaused = true;
+        _audioPlayer?.Pause();
+        
+        // Synchronously read until we get a video frame
+        while (true)
+        {
+            var type = _decoder.TryDecodeNextFrame(out double pts, out byte[] data, out _);
+            if (type == FFmpegDecoder.FrameType.EndOfStream || type == FFmpegDecoder.FrameType.Error) break;
+            if (type == FFmpegDecoder.FrameType.Video)
+            {
+                Position = pts;
+                if (VideoFrameBitmap != null)
+                {
+                    using var fb = VideoFrameBitmap.Lock();
+                    Marshal.Copy(data, 0, fb.Address, data.Length);
+                }
+                break;
+            }
+        }
+    }
+
+    [RelayCommand]
+    public void StepBackward()
+    {
+        // For backwards step, generally need to seek a bit backwards and decode up to current frame - 1.
+        // It's very complex with FFmpeg, so naive approach:
+        RequestSeek(Math.Max(0, Position - 0.05)); 
+        IsPaused = true;
     }
 
     public void LoadMedia(string url)
@@ -185,6 +252,25 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public void OpenPlaylist()
     {
         ShowPlaylistWindowAction?.Invoke();
+    }
+
+    public void RequestSeek(double seconds)
+    {
+        if (_decoder == null || !IsPlaying) return;
+
+        bool wasPaused = IsPaused;
+        IsPaused = true;
+        
+        // Wait for decoder to pause naturally or just force it
+        _decoder.RequestSeek(seconds);
+        _audioPlayer?.ClearBuffer();
+        _baseSeconds = seconds;
+        
+        // In precise sync, we need to know how much audio we've pushed previously, so reset audio clock
+        _audioPlayer?.ResetClock();
+        Position = seconds;
+
+        if (!wasPaused) IsPaused = false;
     }
 
     [RelayCommand]

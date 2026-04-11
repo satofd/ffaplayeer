@@ -68,15 +68,24 @@ public class AudioPlayer : IDisposable
         }
     }
 
-    // NAudio reports GetPosition as bytes played since Play started (or rather, bytes passed to driver)
+    private long _bytesOffset = 0;
+
+    // NAudio reports GetPosition as bytes played since Play started
     public double GetPlayedSeconds()
     {
         if (_waveOut == null || _bufferedWaveProvider == null) return 0;
         
-        // This is safe to use for relative offsets
-        long positionBytes = _waveOut.GetPosition();
+        long positionBytes = _waveOut.GetPosition() - _bytesOffset;
         
         return (double)positionBytes / _bufferedWaveProvider.WaveFormat.AverageBytesPerSecond;
+    }
+
+    public void ResetClock()
+    {
+        if (_waveOut != null)
+        {
+            _bytesOffset = _waveOut.GetPosition();
+        }
     }
 
     public void Dispose()

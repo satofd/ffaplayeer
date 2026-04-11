@@ -8,7 +8,8 @@
         x:DataType="vm:MainViewModel"
         Title="FFmPlayer"
         Background="#1E1E1E"
-        ExtendClientAreaToDecorationsHint="True">
+        ExtendClientAreaToDecorationsHint="True"
+        DragDrop.AllowDrop="True">
 
     <Grid RowDefinitions="*,Auto">
         <!-- Video Area with Context Menu -->
@@ -31,7 +32,7 @@
         <!-- Controls Area -->
         <StackPanel Grid.Row="1" Background="#2D2D30" Orientation="Vertical">
             <!-- Seek Bar -->
-            <Slider Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position}" Margin="10,0"/>
+            <Slider Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position}" PointerCaptureLost="OnSliderPointerCaptureLost" Margin="10,0"/>
             
             <Grid ColumnDefinitions="Auto, *, Auto, Auto" Margin="5">
                 
