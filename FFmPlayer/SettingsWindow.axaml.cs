@@ -20,14 +20,29 @@ public partial class SettingsWindow : Window
     {
         if (DataContext is MainViewModel vm)
         {
-            // ショートカットキーの重複チェック
+            var errorBlock = this.FindControl<TextBlock>("ErrorTextBlock");
+            if (errorBlock != null)
+            {
+                errorBlock.IsVisible = false;
+                errorBlock.Text = "";
+            }
+
             var s = vm.Settings;
             var list = new List<string> 
             { 
-                s.ShortcutPlayPause, s.ShortcutStop, s.ShortcutOpenFile, s.ShortcutShowPlaylist,
-                s.ShortcutSeekForward1s, s.ShortcutSeekBackward1s, s.ShortcutSeekForward10s, s.ShortcutSeekBackward10s,
-                s.ShortcutSeekForward60s, s.ShortcutSeekBackward60s, s.ShortcutToggleFullscreen, s.ShortcutToggleMute,
-                s.ShortcutIncreaseSpeed, s.ShortcutDecreaseSpeed, s.ShortcutResetSpeed
+                s.ShortcutSeekForward1s, s.ShortcutSeekBackward1s, 
+                s.ShortcutSeekForward10s, s.ShortcutSeekBackward10s,
+                s.ShortcutSeekForward60s, s.ShortcutSeekBackward60s,
+                s.ShortcutPlayPause, s.ShortcutStop,
+                s.ShortcutStepForward, s.ShortcutStepBackward,
+                s.ShortcutToggleMute, s.ShortcutToggleFullscreen,
+                s.ShortcutExitFullscreen, s.ShortcutOpenFile,
+                s.ShortcutOpenUrl, s.ShortcutShowPlaylist,
+                s.ShortcutShowMediaInfo, s.ShortcutIncreaseSpeed,
+                s.ShortcutIncreaseSpeedAlt, s.ShortcutDecreaseSpeed,
+                s.ShortcutDecreaseSpeedAlt, s.ShortcutResetSpeed,
+                s.ShortcutSetAbStart, s.ShortcutSetAbEnd,
+                s.ShortcutCycleTimeDisplay, s.ShortcutTakeScreenshot
             };
 
             var hashSet = new HashSet<string>();
@@ -36,12 +51,12 @@ public partial class SettingsWindow : Window
                 if (string.IsNullOrWhiteSpace(shortcut)) continue;
                 if (!hashSet.Add(shortcut))
                 {
-                    var errorBlock = this.FindControl<TextBlock>("ErrorTextBlock");
                     if (errorBlock != null)
                     {
-                        errorBlock.Text = $"エラー: ショートカット '{shortcut}' が重複しています。";
+                        errorBlock.Text = $"エラー: ショートカット '{shortcut}' が重複しています。修正してください。";
+                        errorBlock.IsVisible = true;
                     }
-                    return;
+                    return; // 保存せず中断
                 }
             }
 

@@ -3,43 +3,201 @@
         xmlns:vm="using:FFmPlayer.ViewModels"
         x:Class="FFmPlayer.SettingsWindow"
         x:DataType="vm:MainViewModel"
-        Title="設定" Width="600" Height="500" Background="#1E1E1E" WindowStartupLocation="CenterOwner">
-    <Grid RowDefinitions="*,Auto" Margin="20">
-        <ScrollViewer Grid.Row="0">
-            <StackPanel Spacing="10">
-                <TextBlock Text="一般設定" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
-                
-                <Grid ColumnDefinitions="200, *" RowDefinitions="Auto, Auto, Auto" Margin="10,0">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="デフォルト音量 (0-1):" Foreground="White" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Settings.Volume}" Margin="0,5"/>
-                    
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="メモリ制限 (MB):" Foreground="White" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Settings.MemoryLimitMB}" Margin="0,5"/>
-                </Grid>
+        Title="設定" Width="700" Height="600" Background="#1E1E1E" WindowStartupLocation="CenterOwner">
+    <Grid RowDefinitions="*,Auto" Margin="10">
+        
+        <TabControl Grid.Row="0" TabStripPlacement="Left" Margin="0,0,0,10">
+            <TabControl.Styles>
+                <Style Selector="TabItem">
+                    <Setter Property="FontSize" Value="14"/>
+                    <Setter Property="MinHeight" Value="40"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+            </TabControl.Styles>
 
-                <TextBlock Text="ショートカットキー設定" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,20,0,10"/>
-                
-                <Grid ColumnDefinitions="200, *" RowDefinitions="Auto, Auto, Auto, Auto" Margin="10,0">
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="再生/一時停止:" Foreground="White" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Settings.ShortcutPlayPause}" Margin="0,5"/>
-                    
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="停止:" Foreground="White" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Settings.ShortcutStop}" Margin="0,5"/>
+            <!-- 一般 (General) -->
+            <TabItem Header="一般 (General)">
+                <ScrollViewer>
+                    <StackPanel Spacing="10" Margin="15">
+                        <TextBlock Text="一般設定" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
+                        
+                        <Grid ColumnDefinitions="250, *" RowDefinitions="Auto, Auto, Auto" Margin="10,0">
+                            <!-- Theme -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="テーマ (Theme):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Settings.Theme}" Margin="0,5"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="ファイルを開く:" Foreground="White" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Settings.ShortcutOpenFile}" Margin="0,5"/>
+                            <!-- Always On Top -->
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="常に手前に表示 (Always On Top):" Foreground="White" VerticalAlignment="Center"/>
+                            <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding Settings.AlwaysOnTop}" Margin="0,5"/>
 
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="プレイリスト開閉:" Foreground="White" VerticalAlignment="Center"/>
-                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Settings.ShortcutShowPlaylist}" Margin="0,5"/>
-                </Grid>
+                            <!-- Time Display Mode -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="初期時間表示モード (Display Mode):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Settings.TimeDisplayMode}" Margin="0,5"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
 
-                <TextBlock x:Name="ErrorTextBlock" Foreground="Red" FontWeight="Bold" Margin="0,10"/>
+            <!-- 再生 (Playback) -->
+            <TabItem Header="再生 (Playback)">
+                <ScrollViewer>
+                    <StackPanel Spacing="10" Margin="15">
+                        <TextBlock Text="再生設定" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
+                        
+                        <Grid ColumnDefinitions="250, *" RowDefinitions="Auto, Auto" Margin="10,0">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="デフォルト音量 (Volume 0-1):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Settings.Volume}" Margin="0,5"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="再生スピード (Playback Speed):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Settings.PlaybackSpeed}" Margin="0,5"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- パフォーマンス (Performance) -->
+            <TabItem Header="パフォーマンス (Performance)">
+                <ScrollViewer>
+                    <StackPanel Spacing="10" Margin="15">
+                        <TextBlock Text="パフォーマンス設定" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
+                        
+                        <Grid ColumnDefinitions="250, *" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto" Margin="10,0">
+                            <!-- Memory Limit -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="メモリ制限有効化:" Foreground="White" VerticalAlignment="Center"/>
+                            <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding Settings.MemoryLimitEnabled}" Margin="0,5"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="メモリ制限容量 (MB):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Settings.MemoryLimitMB}" Margin="0,5"/>
+                            
+                            <!-- Frame Buffer Size -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="フレームバッファサイズ (フレーム):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Settings.FrameBufferSize}" Margin="0,5"/>
+                            
+                            <!-- Step Scan Windows -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="スキャンウィンドウ前方 (秒):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Settings.StepScanWindowForwardSeconds}" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="スキャンウィンドウ後方 (秒):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Settings.StepScanWindowBackwardSeconds}" Margin="0,5"/>
+
+                            <!-- A/V Sync -->
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="先読み待機閾値 (Video Lead Sleep):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Settings.VideoLeadSleepThresholdSeconds}" Margin="0,5"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="遅延破棄閾値 (Video Drop Lag):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Settings.VideoDropLagThresholdSeconds}" Margin="0,5"/>
+
+                            <!-- A/V Sync OSD -->
+                            <TextBlock Grid.Row="7" Grid.Column="0" Text="A/V Sync OSD モード:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Settings.AvSyncOsdMode}" Margin="0,5"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ショートカット (Shortcuts) -->
+            <TabItem Header="ショートカット (Shortcuts)">
+                <ScrollViewer>
+                    <StackPanel Spacing="5" Margin="15">
+                        <TextBlock Text="ショートカットキー設定" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
+                        
+                        <Grid ColumnDefinitions="220, *" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto" Margin="10,0">
+                            <!-- Playback Control -->
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="再生/一時停止:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Settings.ShortcutPlayPause}" Margin="0,2"/>
+                            
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="停止:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Settings.ShortcutStop}" Margin="0,2"/>
+
+                            <!-- Seek -->
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="1秒進む:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Settings.ShortcutSeekForward1s}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="1秒戻る:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Settings.ShortcutSeekBackward1s}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="10秒進む:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Settings.ShortcutSeekForward10s}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="10秒戻る:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding Settings.ShortcutSeekBackward10s}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="60秒進む:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding Settings.ShortcutSeekForward60s}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="7" Grid.Column="0" Text="60秒戻る:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding Settings.ShortcutSeekBackward60s}" Margin="0,2"/>
+
+                            <!-- Step -->
+                            <TextBlock Grid.Row="8" Grid.Column="0" Text="1コマ進む (Step Forward):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding Settings.ShortcutStepForward}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="9" Grid.Column="0" Text="1コマ戻る (Step Backward):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding Settings.ShortcutStepBackward}" Margin="0,2"/>
+
+                            <!-- Speed -->
+                            <TextBlock Grid.Row="10" Grid.Column="0" Text="再生速度アップ:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding Settings.ShortcutIncreaseSpeed}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="11" Grid.Column="0" Text="再生速度アップ(Alt):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="11" Grid.Column="1" Text="{Binding Settings.ShortcutIncreaseSpeedAlt}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="12" Grid.Column="0" Text="再生速度ダウン:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="12" Grid.Column="1" Text="{Binding Settings.ShortcutDecreaseSpeed}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="13" Grid.Column="0" Text="再生速度ダウン(Alt):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding Settings.ShortcutDecreaseSpeedAlt}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="14" Grid.Column="0" Text="再生速度リセット:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="14" Grid.Column="1" Text="{Binding Settings.ShortcutResetSpeed}" Margin="0,2"/>
+
+                            <!-- A-B Repeat -->
+                            <TextBlock Grid.Row="15" Grid.Column="0" Text="A-Bループ A点設定:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="15" Grid.Column="1" Text="{Binding Settings.ShortcutSetAbStart}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="16" Grid.Column="0" Text="A-Bループ B点設定:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="16" Grid.Column="1" Text="{Binding Settings.ShortcutSetAbEnd}" Margin="0,2"/>
+
+                            <!-- Window & View -->
+                            <TextBlock Grid.Row="17" Grid.Column="0" Text="全画面切り替え:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="17" Grid.Column="1" Text="{Binding Settings.ShortcutToggleFullscreen}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="18" Grid.Column="0" Text="全画面終了:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="18" Grid.Column="1" Text="{Binding Settings.ShortcutExitFullscreen}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="19" Grid.Column="0" Text="ミュート切り替え:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="19" Grid.Column="1" Text="{Binding Settings.ShortcutToggleMute}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="20" Grid.Column="0" Text="時間表示サイクル:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="20" Grid.Column="1" Text="{Binding Settings.ShortcutCycleTimeDisplay}" Margin="0,2"/>
+
+                            <!-- Dialogs / Interactions -->
+                            <TextBlock Grid.Row="21" Grid.Column="0" Text="ファイルを開く:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="21" Grid.Column="1" Text="{Binding Settings.ShortcutOpenFile}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="22" Grid.Column="0" Text="URLを開く:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="22" Grid.Column="1" Text="{Binding Settings.ShortcutOpenUrl}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="23" Grid.Column="0" Text="プレイリスト開閉:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="23" Grid.Column="1" Text="{Binding Settings.ShortcutShowPlaylist}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="24" Grid.Column="0" Text="メディア情報表示:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="24" Grid.Column="1" Text="{Binding Settings.ShortcutShowMediaInfo}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="25" Grid.Column="0" Text="スクリーンショット:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="25" Grid.Column="1" Text="{Binding Settings.ShortcutTakeScreenshot}" Margin="0,2"/>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="0,10,0,0">
+            <TextBlock x:Name="ErrorTextBlock" Foreground="Red" FontWeight="Bold" Background="#33FF0000" VerticalAlignment="Center" Padding="5" IsVisible="False"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+                <Button Content="キャンセル" Click="OnCancelClick" Width="80" HorizontalContentAlignment="Center"/>
+                <Button Content="保存して閉じる" Click="OnSaveClick" Width="120" HorizontalContentAlignment="Center" Background="#007ACC" Foreground="White"/>
             </StackPanel>
-        </ScrollViewer>
-
-        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,10,0,0">
-            <Button Content="キャンセル" Click="OnCancelClick" Width="80" HorizontalContentAlignment="Center"/>
-            <Button Content="保存して閉じる" Click="OnSaveClick" Width="120" HorizontalContentAlignment="Center" Background="#007ACC" Foreground="White"/>
-        </StackPanel>
+        </Grid>
     </Grid>
 </Window>
