@@ -273,6 +273,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPaused = true;
         _audioPlayer?.Pause();
 
+        if (_backfillTargetPts >= 0)
+        {
+            // すでにバックフィル（過去方向へのシークとデコード）が走っている場合は、
+            // 余計なシーク要求を出してデコーダーをリセットしてしまわないよう、目標値だけを更新する
+            _backfillTargetPts = Math.Max(0, _backfillTargetPts - 1.0 / (_decoder.Framerate > 0 ? _decoder.Framerate : 30.0));
+            return;
+        }
+
         double targetPts = Math.Max(0, Position - 1.0 / (_decoder.Framerate > 0 ? _decoder.Framerate : 30.0));
         var cachedFrame = _frameBuffer.StepBackward(targetPts);
         if (cachedFrame != null)
@@ -496,7 +504,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     {
                         if (pts >= _backfillTargetPts)
                         {
-                            var targetFrame = _frameBuffer.StepBackward(pts);
+                            var targetFrame = _frameBuffer.StepBackward(_backfillTargetPts);
                             if (targetFrame != null)
                             {
                                 Dispatcher.UIThread.Post(() => {
