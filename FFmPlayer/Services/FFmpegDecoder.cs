@@ -6,14 +6,23 @@ namespace FFmPlayer.Services;
 
 public unsafe class FFmpegDecoder : IDisposable
 {
+    // FFmpeg内でメディアファイル全体を管理するコンテキスト
     private AVFormatContext* _formatContext;
+    // 映像ストリームをデコードするためのコンテキスト
     private AVCodecContext* _videoCodecContext;
+    // 音声ストリームをデコードするためのコンテキスト
     private AVCodecContext* _audioCodecContext;
+    // 映像と音声それぞれのストリームのインデックス番号
     private int _videoStreamIndex = -1;
     private int _audioStreamIndex = -1;
+    
+    // デコード後の解凍されたフレームと、圧縮されたパケットを入れるためのポインタ
     private AVFrame* _frame;
     private AVPacket* _packet;
+    
+    // 映像フォーマット変換用（例：YUV -> BGRA）のコンテキスト
     private SwsContext* _swsContext;
+    // 音声リサンプリング変換用（例：任意のサンプルレート -> 44100Hz 16bit）のコンテキスト
     private SwrContext* _swrContext;
     
     // For Video Conversion
@@ -30,10 +39,16 @@ public unsafe class FFmpegDecoder : IDisposable
     public double Framerate { get; private set; }
     public AVRational VideoTimeBase { get; private set; }
     
+    // オーディオ設定プロパティ
     public int AudioSampleRate { get; private set; } = 44100;
     public int AudioChannels { get; private set; } = 2;
     public AVRational AudioTimeBase { get; private set; }
     
+    /// <summary>
+    /// メディアファイルを指定したURL（またはパス）から読み込み、ビデオとオーディオのストリームデコーダを準備します。
+    /// </summary>
+    /// <param name="url">読み込むメディアのURL</param>
+    /// <returns>初期化に成功したか</returns>
     public bool Initialize(string url)
     {
         try
@@ -119,18 +134,31 @@ public unsafe class FFmpegDecoder : IDisposable
         }
     }
 
+    /// <summary>
+    /// 指定された時間（秒数）へシーク（ジャンプ）します。FFmpegの仕様上、指定された時間より前の直近のキーフレームへと飛びます。
+    /// </summary>
+    /// <param name="seconds">ジャンプ先の時間</param>
     public void RequestSeek(double seconds)
     {
         if (_formatContext == null) return;
+        // FFmpegの内部時間（AV_TIME_BASE基準）に変換
         long targetPts = (long)(seconds * ffmpeg.AV_TIME_BASE);
+        // ファイル単位でシーク処理を実行
         ffmpeg.avformat_seek_file(_formatContext, -1, long.MinValue, targetPts, long.MaxValue, ffmpeg.AVSEEK_FLAG_BACKWARD);
+        // シークしたため、デコーダ内に残っている過去の不要なフレームバッファをフラッシュ（破棄）する
         if (_videoCodecContext != null) ffmpeg.avcodec_flush_buffers(_videoCodecContext);
         if (_audioCodecContext != null) ffmpeg.avcodec_flush_buffers(_audioCodecContext);
     }
 
     public enum FrameType { None, Video, Audio, Error, EndOfStream }
 
-    // Returns frame data and Type
+    /// <summary>
+    /// FFmpegから順番にパケットを読み込み、デコードし、AvaloniaやNAudioで使える形式のbyte配列に変換して返します。
+    /// </summary>
+    /// <param name="pts">デコードされたフレームの再生位置（秒）が返ります</param>
+    /// <param name="data">変換済みのピクセルデータまたはオーディオデータが返ります</param>
+    /// <param name="strideOrCount">映像の場合は1行あたりのバイト数(Stride)、音声の場合はバイト数が返ります</param>
+    /// <returns>読み込まれたフレームの種類</returns>
     public FrameType TryDecodeNextFrame(out double pts, out byte[] data, out int strideOrCount)
     {
         pts = 0;

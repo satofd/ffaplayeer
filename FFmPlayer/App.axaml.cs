@@ -13,12 +13,20 @@ public partial class App : Application
 {
     private MainViewModel? _mainViewModel;
 
+    /// <summary>
+    /// AvalonUI アプリケーションの初期化エントリポイントです。
+    /// XAML の読み込みと、FFmpegライブラリのルートパス設定を行います。
+    /// </summary>
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
         ffmpeg.RootPath = AppContext.BaseDirectory;
     }
 
+    /// <summary>
+    /// UIフレームワークの初期化が完了した直後に呼ばれます。
+    /// 設定の読み込みと、MainViewModel および MainWindow の生成・紐付けを行います。
+    /// </summary>
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)

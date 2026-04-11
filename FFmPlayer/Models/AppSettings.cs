@@ -12,6 +12,9 @@ public enum PlaybackMode
     Off
 }
 
+/// <summary>
+/// アプリケーション全体の設定（シーク閾値、ショートカットキー、音量など）を保持するデータモデルです。
+/// </summary>
 public class AppSettings
 {
     public double Volume { get; set; } = 1.0;

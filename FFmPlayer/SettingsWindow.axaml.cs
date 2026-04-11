@@ -12,6 +12,10 @@ public partial class SettingsWindow : Window
         InitializeComponent();
     }
 
+    /// <summary>
+    /// 保存ボタンがクリックされた際の処理です。
+    /// 各ショートカットキーに重複がないかを検証し、問題なければ設定を保存してウィンドウを閉じます。
+    /// </summary>
     private void OnSaveClick(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainViewModel vm)
@@ -47,6 +51,9 @@ public partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>
+    /// キャンセルボタンがクリックされた際に変更を破棄してウィンドウを閉じます。
+    /// </summary>
     private void OnCancelClick(object? sender, RoutedEventArgs e)
     {
         Close();

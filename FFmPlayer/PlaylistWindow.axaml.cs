@@ -31,6 +31,10 @@ public partial class PlaylistWindow : Window
         AddHandler(DragDrop.DropEvent, OnDrop);
     }
 
+    /// <summary>
+    /// プレイリスト画面上にメディアファイルがドロップされた際、リストへファイルを追加します。
+    /// （既存のプレイリストを消去せず末尾に追加します）
+    /// </summary>
     private void OnDrop(object? sender, DragEventArgs e)
     {
         if (DataContext is MainViewModel vm)
@@ -44,6 +48,10 @@ public partial class PlaylistWindow : Window
         }
     }
 
+    /// <summary>
+    /// 「追加」ボタンがクリックされた際、OSのファイル選択ダイアログを開き、
+    /// 選択されたファイルをプレイリストへ追加します。
+    /// </summary>
     private async void OnAddFilesClick(object? sender, RoutedEventArgs e)
     {
         var options = new Avalonia.Platform.Storage.FilePickerOpenOptions
@@ -59,6 +67,10 @@ public partial class PlaylistWindow : Window
         }
     }
 
+    /// <summary>
+    /// プレイリストの各項目の横にある「削除（Remove）」ボタンが押された際に、
+    /// 対象のメディアをリストから取り除きます。再生中だった場合は再生も停止します。
+    /// </summary>
     private void OnRemoveItemClick(object? sender, RoutedEventArgs e)
     {
         if (sender is MenuItem menuItem && menuItem.DataContext is string url && DataContext is MainViewModel vm)

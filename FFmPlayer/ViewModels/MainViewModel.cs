@@ -22,8 +22,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     
     private FFmpegDecoder? _decoder;
     private AudioPlayer? _audioPlayer;
+    // デコードや描画ループなどのバックグラウンドタスクをキャンセル（停止）するためのトークン
     private CancellationTokenSource? _decodeCts;
+    // データの読み込み・デコードを行うタスク
     private Task? _decodeTask;
+    // デコード済み映像を指定時間に合わせて画面に描画するタスク
     private Task? _renderTask;
 
     // 音ズレ補正用ディレイ（秒）。必要に応じて変更可能。
@@ -36,8 +39,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         public bool IsEndOfStream { get; set; }
     }
     
+    // UIに即時表示できるよう、デコードされた映像フレームを一時的に溜めておくためのスレッドセーフなキュー
     private ConcurrentQueue<VideoFrameData> _videoFrames = new();
 
+    // ユーザーがシークや再生操作を行った際、映像と音声を同期させるための「基本となる基準時間（秒）」
     private double _baseSeconds = 0;
 
     [ObservableProperty]
@@ -155,6 +160,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         OpenFileAction?.Invoke();
     }
 
+    /// <summary>
+    /// アプリケーション内で受け取ったキー入力をショートカット設定と照らし合わせ、合致する機能（再生、停止、音量調整など）を実行します。
+    /// </summary>
+    /// <param name="key">押されたキー</param>
+    /// <param name="modifiers">同時押しされている修飾キー（Ctrl, Shift, Altなど）</param>
+    /// <returns>ショートカットとして処理された場合はtrueを返します</returns>
     public bool ProcessShortcut(Avalonia.Input.Key key, Avalonia.Input.KeyModifiers modifiers)
     {
         var mods = string.Empty;
@@ -188,6 +199,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         return false;
     }
 
+    /// <summary>
+    /// 現在の再生位置からコマ送り（1フレーム進む）を行います。
+    /// 音声と映像の再生ストリームを一時停止状態にし、次の映像フレームのみを即時デコードしてUIへ強制描画します。
+    /// </summary>
     [RelayCommand]
     public void StepForward()
     {
@@ -204,6 +219,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// AvalonUIのWriteableBitmapのメモリ空間をロックし、バックグラウンドでデコードされた生の映像byte配列をコピーして画面を更新します。
+    /// （UIスレッドでのみ実行される想定）
+    /// </summary>
     private void UpdateVideoBitmap(VideoFrameData frame)
     {
         if (VideoFrameBitmap != null)
@@ -226,6 +245,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// 現在の再生位置からコマ戻し（少し前の時間にシーク）を行います。
+    /// 現状は簡易的にわずかな時間（0.05秒）だけ巻き戻し、一時停止状態へ移行します。
+    /// </summary>
     [RelayCommand]
     public void StepBackward()
     {
@@ -242,6 +265,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand] public void SeekBackward10() => RequestSeek(Math.Max(0, Position - 10));
     [RelayCommand] public void SeekBackward60() => RequestSeek(Math.Max(0, Position - 60));
 
+    /// <summary>
+    /// プレイリスト設定（リピート、順次再生、ランダムなど）に基づき、次のメディアファイルを選択して自動的にロードします。
+    /// </summary>
     public void AdvancePlaylist()
     {
         if (Playlist.Count == 0) return;
@@ -274,6 +300,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// 指定されたURL（またはローカルパス）のメディアファイルを読み込み、FFmpegデコーダとオーディオプレーヤーを初期化して再生を開始します。
+    /// </summary>
+    /// <param name="url">再生するメディアのパス</param>
     public void LoadMedia(string url)
     {
         Stop();
@@ -327,6 +357,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private double _seekRequestTime = -1;
     private bool _needsPreviewFrame = false;
 
+    /// <summary>
+    /// バックグラウンドでFFmpegからメディアパケットを連続で読み込み、デコードするループ処理です。
+    /// デコードした映像フレームは _videoFrames キューに一時保存され、音声フレームはそのまま NAudio に渡されます。
+    /// （シーク要求があった場合は古いフレームを破棄し、新しい時間軸から読み込みを再開します）
+    /// </summary>
+    /// <param name="token">終了・キャンセル要求を受け取るためのトークン</param>
     private async Task DecodeLoopAsync(CancellationToken token)
     {
         double targetSeekTimeAfterFlush = -1;
@@ -334,24 +370,33 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             while (!token.IsCancellationRequested)
             {
+                // UIスレッドなどからのシーク要求があるかチェックする
+                // Interlocked.Exchangeを使ってスレッドセーフに読み取りとリセット（-1へ）を同時に実行
                 double target = Interlocked.Exchange(ref _seekRequestTime, -1);
+                
+                // もしシーク要求（0秒以上）があった場合
                 if (target >= 0)
                 {
                     _decoder?.RequestSeek(target);
                     _audioPlayer?.ClearBuffer();
+                    // キューにたまっている古いデコード済みフレームをすべて破棄
                     while (_videoFrames.TryDequeue(out _)) { } 
                     
+                    // シーク処理直後であることを記録し、強制的に次のフレームを画面に描画させるフラグをオンにする
                     targetSeekTimeAfterFlush = target;
                     _needsPreviewFrame = true;
                     continue;
                 }
 
+                // デコーダが存在しないか、一時停止中かつ既に十分なフレーム（5枚以上）が溜まっているなら休止
+                // (一時停止中も描画のために数枚だけは読み込んでおく設計)
                 if (_decoder == null || (IsPaused && _videoFrames.Count >= 5))
                 {
                     await Task.Delay(50, token);
                     continue;
                 }
 
+                // 再生中で、十分な映像フレーム（設定値分）または音声バッファ（4秒以上）が既に溜まっているなら休止
                 if (!IsPaused && (_videoFrames.Count >= _settings.FrameBufferSize || 
                     (_audioPlayer != null && _audioPlayer.GetBufferedSeconds() > 4.0)))
                 {
@@ -359,13 +404,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     continue;
                 }
 
+                // FFmpegに次のフレームのデコードを行わせる
                 var type = _decoder.TryDecodeNextFrame(out double pts, out byte[] data, out int strideOrSize);
 
                 if (type == FFmpegDecoder.FrameType.EndOfStream)
                 {
                     targetSeekTimeAfterFlush = -1;
                     _videoFrames.Enqueue(new VideoFrameData { IsEndOfStream = true });
-                    // Wait a bit to not burn CPU if EOF
+                    // ファイルの終端に達した場合は無駄なCPU消費を避けるため長めに待機
                     await Task.Delay(500, token);
                     continue;
                 }
@@ -423,57 +469,74 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>
+    /// デコードされてキューに溜まった映像フレーム (`_videoFrames`) を取り出し、
+    /// 現在の再生時間（音声基準時間など）と照らし合わせながら、AvaloniaのUIスレッドへ描画を依頼するループ処理です。
+    /// （映像が早すぎる場合は待機し、遅すぎる場合はフレームをドロップしてA/V同期を保ちます）
+    /// </summary>
+    /// <param name="token">終了・キャンセル要求を受け取るためのトークン</param>
     private async Task VideoRenderLoopAsync(CancellationToken token)
     {
         try
         {
             while (!token.IsCancellationRequested)
             {
+                // 一時停止中は、画面を更新しないため待機（CPU消費を抑える）
                 if (IsPaused)
                 {
                     await Task.Delay(10, token);
                     continue;
                 }
 
+                // キューに映像フレームが存在するかチェックする（取り出しはまだ行わない）
                 if (_videoFrames.TryPeek(out var frame))
                 {
+                    // 動画が終わった場合（EndOfStreamフラグが立っている）
                     if (frame.IsEndOfStream)
                     {
                         Dispatcher.UIThread.Post(() => {
-                            Stop();
-                            AdvancePlaylist();
+                            Stop(); // 再生を停止状態にする
+                            AdvancePlaylist(); // リピートや次の動画等、プレイリストの設定に合わせて次へ進む
                         });
                         break;
                     }
 
+                    // 音声を基準とした「現在の正確な再生時間（マスタークロック）」を計算する
                     double audioMasterSec = _baseSeconds + _audioPlayer!.GetPlayedSeconds() * PlaybackSpeed;
                     
                     // 音ズレ補正（動画の描画を意図的に遅らせるディレイ）
                     audioMasterSec -= AudioSyncDelaySeconds;
 
+                    // 映像の表示時間と現在のマスタークロックとの差（ズレ）を計算
                     double drift = frame.Pts - audioMasterSec;
 
+                    // 映像が音声よりも先行しすぎている場合は、描画タイミングが来るまでその時間分だけ待機する
                     if (drift > _settings.VideoLeadSleepThresholdSeconds)
                     {
                         await Task.Delay((int)(drift * 1000 / PlaybackSpeed), token);
                         continue;
                     }
 
+                    // 描画タイミングが来たため、初めてキューからフレームを取り出す
                     _videoFrames.TryDequeue(out _);
 
+                    // 映像が音声より遅れすぎている場合は、このフレームは描画（表示）せずに破棄してA/V同期を合わせる
                     if (drift < -_settings.VideoDropLagThresholdSeconds)
                     {
                         continue; // Drop frame
                     }
 
+                    // UIスレッドを呼び出して、実際に画像を画面へ表示する
                     Dispatcher.UIThread.Post(() =>
                     {
+                        // ユーザーがシークバーをドラッグ中でなければ、シークバーの位置（Position）を動画の現在位置（Pts）に同調させる
                         if (!IsDraggingSlider) Position = frame.Pts;
                         UpdateVideoBitmap(frame);
                     });
                 }
                 else
                 {
+                    // デコードが追いついていない（キューが空の）場合は少し待機
                     await Task.Delay(10, token);
                 }
             }
@@ -550,12 +613,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ShowPlaylistWindowAction?.Invoke();
     }
 
+    /// <summary>
+    /// 動画のシーク要求を行います。UIなどから時間（秒）を受け取り、バックグラウンドのデコードループへ通知します。
+    /// </summary>
+    /// <param name="seconds">ジャンプ先の時間（秒）</param>
     public void RequestSeek(double seconds)
     {
         if (_decoder == null) return;
         Interlocked.Exchange(ref _seekRequestTime, seconds);
     }
 
+    /// <summary>
+    /// 再生・一時停止のトグル処理を行います。オーディオの再生状態も同時に切り替わります。
+    /// </summary>
     [RelayCommand]
     public void PlayPause()
     {
@@ -574,6 +644,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsStopped));
     }
 
+    /// <summary>
+    /// メディアの再生を完全に停止し、デコーダーとオーディオプレイヤーのメモリやタスクを破棄して初期状態に戻します。
+    /// </summary>
     [RelayCommand]
     public void Stop()
     {
@@ -597,18 +670,30 @@ public partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsStopped));
     }
 
+    /// <summary>
+    /// コンストラクタで初期化された設定値などに基づき、再生速度を0.1倍ずつ上げます（最大3.0倍）。
+    /// </summary>
     [RelayCommand]
     public void IncreaseSpeed() => PlaybackSpeed = Math.Clamp(PlaybackSpeed + 0.1, 0.1, 3.0);
 
+    /// <summary>
+    /// コンストラクタで初期化された設定値などに基づき、再生速度を0.1倍ずつ下げます（最低0.1倍）。
+    /// </summary>
     [RelayCommand]
     public void DecreaseSpeed() => PlaybackSpeed = Math.Clamp(PlaybackSpeed - 0.1, 0.1, 3.0);
 
+    /// <summary>
+    /// プレイリストにおける次のメディア（曲や動画）へ手動でスキップします。
+    /// </summary>
     [RelayCommand]
     public void PlayListNext()
     {
         AdvancePlaylist();
     }
     
+    /// <summary>
+    /// プレイリストにおける前のメディアへ戻ります。ランダム、ループなどの再生モード設定（PlaybackMode）を加味して対象を決定します。
+    /// </summary>
     [RelayCommand]
     public void PlayListPrev()
     {
@@ -654,6 +739,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _audioPlayer?.SetVolume(value ? 0 : (float)Volume);
     }
 
+    /// <summary>
+    /// 現在の音量、ミュート状態、再生オプションなどを AppSettings クラスのプロパティへ反映し、ディスク（設定ファイル）へ保存します。
+    /// </summary>
     public void SaveSettings()
     {
         _settings.Volume = Volume;

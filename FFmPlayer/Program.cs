@@ -5,14 +5,18 @@ namespace FFmPlayer;
 
 class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
+    /// <summary>
+    /// プログラムのメインエントリポイントです。Avaloniaアプリの設定と起動を行います。
+    /// （Avaloniaが初期化される前なので、ここでUI関連のAPIは使用できません）
+    /// </summary>
     [STAThread]
     public static void Main(string[] args) => BuildAvaloniaApp()
         .StartWithClassicDesktopLifetime(args);
 
-    // Avalonia configuration, don't remove; also used by visual designer.
+    /// <summary>
+    /// Avaloniaアプリケーションの設定ビルダーです。プラットフォーム検出やフォント設定を行います。
+    /// （UIデザイナーからも呼び出されるため、削除・変更は慎重に行ってください）
+    /// </summary>
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()

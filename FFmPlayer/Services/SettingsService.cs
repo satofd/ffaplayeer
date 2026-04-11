@@ -18,6 +18,10 @@ public class SettingsService
         _settingsFilePath = Path.Combine(AppContext.BaseDirectory, "settings.json");
     }
 
+    /// <summary>
+    /// settings.json ファイルからアプリ設定を読み込みます。
+    /// ファイルが存在しない、またはエラー時はデフォルト値を持った設定を返します。
+    /// </summary>
     public AppSettings Load()
     {
         try
@@ -40,6 +44,9 @@ public class SettingsService
         return new AppSettings();
     }
 
+    /// <summary>
+    /// アプリ設定を settings.json ファイルとして保存します。
+    /// </summary>
     public void Save(AppSettings settings)
     {
         try
