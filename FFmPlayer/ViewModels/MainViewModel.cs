@@ -321,6 +321,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private async Task DecodeLoopAsync(CancellationToken token)
     {
+        double targetSeekTimeAfterFlush = -1;
         try
         {
             while (!token.IsCancellationRequested)
@@ -331,11 +332,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     _decoder?.RequestSeek(target);
                     _audioPlayer?.ClearBuffer();
                     while (_videoFrames.TryDequeue(out _)) { } 
-                    _baseSeconds = target;
-                    _audioPlayer?.ResetClock();
-                    Dispatcher.UIThread.Post(() => {
-                        if (!IsDraggingSlider) Position = target;
-                    });
+                    
+                    targetSeekTimeAfterFlush = target;
                     continue;
                 }
 
@@ -356,12 +354,40 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
                 if (type == FFmpegDecoder.FrameType.EndOfStream)
                 {
+                    targetSeekTimeAfterFlush = -1;
                     _videoFrames.Enqueue(new VideoFrameData { IsEndOfStream = true });
                     // Wait a bit to not burn CPU if EOF
                     await Task.Delay(500, token);
                     continue;
                 }
                 
+                if (targetSeekTimeAfterFlush >= 0)
+                {
+                    if (type == FFmpegDecoder.FrameType.Video || type == FFmpegDecoder.FrameType.Audio)
+                    {
+                        if (pts < targetSeekTimeAfterFlush)
+                        {
+                            continue; // Discard pre-target frames decoded after seeking back to keyframe
+                        }
+                        
+                        _baseSeconds = pts;
+                        targetSeekTimeAfterFlush = -1;
+                        _audioPlayer?.ResetClock();
+                        Dispatcher.UIThread.Post(() => {
+                            if (!IsDraggingSlider) Position = pts;
+                        });
+                    }
+                    else if (type == FFmpegDecoder.FrameType.Error)
+                    {
+                        targetSeekTimeAfterFlush = -1;
+                        continue;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+
                 if (type == FFmpegDecoder.FrameType.Video)
                 {
                     _videoFrames.Enqueue(new VideoFrameData { Pts = pts, Data = data });
