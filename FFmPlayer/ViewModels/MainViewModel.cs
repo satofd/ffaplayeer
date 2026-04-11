@@ -44,6 +44,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private string _osdMessage = string.Empty;
 
     [ObservableProperty]
+    private bool _osdVisible;
+
+    [ObservableProperty]
+    private TimeSpan _timePosition;
+
+    [ObservableProperty]
+    private TimeSpan _timeDuration;
+
+    [ObservableProperty]
     private double _volume = 1.0;
 
     [ObservableProperty]
@@ -59,6 +68,41 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private string? _currentPlaylistItem;
+
+    [ObservableProperty]
+    private int _currentPlaylistIndex = -1;
+
+    public void AddFilesToPlaylist(System.Collections.Generic.IEnumerable<string> files, bool clearExisting)
+    {
+        if (clearExisting)
+        {
+            Playlist.Clear();
+            CurrentPlaylistItem = null;
+            CurrentPlaylistIndex = -1;
+            Stop();
+        }
+
+        bool playFirst = false;
+        if (clearExisting || Playlist.Count == 0 || !IsPlaying)
+        {
+            playFirst = clearExisting; // usually true when dropping direct to player
+        }
+
+        string? firstFile = null;
+        foreach (var file in files)
+        {
+            if (!Playlist.Contains(file))
+            {
+                Playlist.Add(file);
+                firstFile ??= file;
+            }
+        }
+
+        if (playFirst && firstFile != null)
+        {
+            LoadMedia(firstFile);
+        }
+    }
 
     public Action? ShowSettingsWindowAction { get; set; }
     public Action? ShowPlaylistWindowAction { get; set; }
@@ -149,6 +193,38 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPaused = true;
     }
 
+    public void AdvancePlaylist()
+    {
+        if (Playlist.Count == 0) return;
+
+        int currentIndex = Playlist.IndexOf(CurrentPlaylistItem ?? "");
+        string? nextUrl = null;
+
+        switch (_settings.PlaybackMode)
+        {
+            case FFmPlayer.Models.PlaybackMode.Sequential:
+                nextUrl = Playlist[(currentIndex + 1) % Playlist.Count];
+                break;
+            case FFmPlayer.Models.PlaybackMode.RepeatOne:
+                nextUrl = CurrentPlaylistItem;
+                break;
+            case FFmPlayer.Models.PlaybackMode.Random:
+                nextUrl = Playlist[new Random().Next(Playlist.Count)];
+                break;
+            case FFmPlayer.Models.PlaybackMode.Off:
+                if (currentIndex >= 0 && currentIndex < Playlist.Count - 1)
+                {
+                    nextUrl = Playlist[currentIndex + 1];
+                }
+                break;
+        }
+
+        if (!string.IsNullOrEmpty(nextUrl))
+        {
+            LoadMedia(nextUrl);
+        }
+    }
+
     public void LoadMedia(string url)
     {
         Stop();
@@ -158,6 +234,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             Playlist.Add(url);
         }
         CurrentPlaylistItem = url;
+        CurrentPlaylistIndex = Playlist.IndexOf(url) + 1;
 
         _decoder = new FFmpegDecoder();
         if (!_decoder.Initialize(url))
@@ -206,7 +283,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
                 if (type == FFmpegDecoder.FrameType.EndOfStream)
                 {
-                    Dispatcher.UIThread.Post(() => Stop());
+                    Dispatcher.UIThread.Post(() => {
+                        Stop();
+                        AdvancePlaylist();
+                    });
                     break;
                 }
                 
@@ -251,8 +331,22 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private void ShowOsd(string msg)
     {
         OsdMessage = msg;
+        OsdVisible = true;
         // Ideally start a timer to clear after 3 seconds
-        Task.Delay(3000).ContinueWith(_ => Dispatcher.UIThread.Post(() => OsdMessage = ""));
+        Task.Delay(3000).ContinueWith(_ => Dispatcher.UIThread.Post(() => {
+            if (OsdMessage == msg) OsdVisible = false;
+            OsdMessage = "";
+        }));
+    }
+
+    partial void OnPositionChanged(double value)
+    {
+        TimePosition = TimeSpan.FromSeconds(value);
+    }
+
+    partial void OnDurationChanged(double value)
+    {
+        TimeDuration = TimeSpan.FromSeconds(value);
     }
 
     [RelayCommand]

@@ -1,9 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:FFmPlayer.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="FFmPlayer.MainWindow"
         x:DataType="vm:MainViewModel"
         Title="FFmPlayer"
@@ -11,50 +8,87 @@
         SystemDecorations="None"
         DragDrop.AllowDrop="True">
 
-    <Grid RowDefinitions="*,Auto">
+    <Grid RowDefinitions="Auto, *, Auto">
+        
+        <!-- Custom Title Bar -->
+        <Border Grid.Row="0" Background="#252526" Height="30" PointerPressed="OnTitleBarPointerPressed">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="10,0">
+                    <TextBlock Text="FFmPlayer" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                    <TextBlock Text="{Binding CurrentPlaylistItem}" Foreground="LightGray" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="400"/>
+                    <TextBlock Text="{Binding CurrentPlaylistIndex, StringFormat='{} [{0} / '}" Foreground="Gray" VerticalAlignment="Center" IsVisible="{Binding CurrentPlaylistIndex, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                    <TextBlock Text="{Binding Playlist.Count, StringFormat='{}{0}]'}" Foreground="Gray" VerticalAlignment="Center" IsVisible="{Binding CurrentPlaylistIndex, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="0">
+                    <Button Content="-" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnMinimizeClick"/>
+                    <Button Content="□" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnMaximizeClick"/>
+                    <Button Content="×" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnCloseClick"/>
+                    <StackPanel.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3E3E40"/>
+                        </Style>
+                    </StackPanel.Styles>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Video Area with Context Menu -->
-        <Border Grid.Row="0" Background="Black">
+        <Border Grid.Row="1" Background="Black">
             <Border.ContextMenu>
                 <ContextMenu>
-                    <MenuItem Header="設定 (Settings)" Command="{Binding OpenSettings}"/>
-                    <MenuItem Header="プレイリスト (Playlist)" Command="{Binding OpenPlaylist}"/>
+                    <MenuItem Header="設定 (Settings)" Command="{Binding ShowSettingsWindowAction}"/>
+                    <MenuItem Header="プレイリスト" Command="{Binding ShowPlaylistWindowAction}"/>
                 </ContextMenu>
             </Border.ContextMenu>
-            
-            <Panel>
+            <Grid>
                 <Image x:Name="VideoImage" Stretch="Uniform" Source="{Binding VideoFrameBitmap}" />
-                <!-- OSD Layer -->
-                <TextBlock Text="{Binding OsdMessage}" Foreground="White" FontSize="24"
-                           VerticalAlignment="Top" HorizontalAlignment="Left" Margin="20"/>
-            </Panel>
+                <!-- OSD Message overlapping video -->
+                <TextBlock Text="{Binding OsdMessage}" Foreground="White" FontSize="24" FontWeight="Bold"
+                           HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20"
+                           IsVisible="{Binding OsdVisible}">
+                    <TextBlock.Effect>
+                        <DropShadowDirectionEffect ShadowDepth="2" BlurRadius="4" Color="Black" Opacity="0.8"/>
+                    </TextBlock.Effect>
+                </TextBlock>
+            </Grid>
         </Border>
 
         <!-- Controls Area -->
-        <StackPanel Grid.Row="1" Background="#2D2D30" Orientation="Vertical">
+        <StackPanel Grid.Row="2" Background="#2D2D30" Orientation="Vertical">
             <!-- Seek Bar -->
             <Slider Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position}" PointerCaptureLost="OnSliderPointerCaptureLost" Margin="10,0"/>
             
             <Grid ColumnDefinitions="Auto, *, Auto, Auto" Margin="5">
                 
-                <!-- Left: Mute & Volume -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <CheckBox IsChecked="{Binding IsMuted}" Content="Mute" Foreground="White" Margin="5,0"/>
-                    <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" Width="100" Margin="5,0" VerticalAlignment="Center"/>
-                </StackPanel>
-
-                <!-- Center: Playback Controls -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                    <Button Command="{Binding PlayListPrev}" Content="⏮" Width="40" Margin="2"/>
-                    <Button Command="{Binding PlayPause}" Content="▶/⏸" Width="60" Margin="2"/>
-                    <Button Command="{Binding Stop}" Content="⏹" Width="40" Margin="2"/>
-                    <Button Command="{Binding PlayListNext}" Content="⏭" Width="40" Margin="2"/>
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                    <Button Content="Play" Command="{Binding PlayPauseCommand}" />
+                    <Button Content="Stop" Command="{Binding StopCommand}" />
+                    <!-- Time Display -->
+                    <TextBlock Foreground="White" VerticalAlignment="Center" Margin="5,0">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0:hh\\:mm\\:ss} / {1:hh\\:mm\\:ss}">
+                                <Binding Path="TimePosition" />
+                                <Binding Path="TimeDuration" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
                 </StackPanel>
                 
-                <!-- Right: Playback Speed -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0">
-                    <TextBlock Text="{Binding PlaybackSpeed, StringFormat='速度: {0:F1}x'}" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <Button Command="{Binding DecreaseSpeed}" Content="-" Width="30" Margin="1"/>
-                    <Button Command="{Binding IncreaseSpeed}" Content="+" Width="30" Margin="1"/>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                    <TextBlock Text="Speed:" Foreground="White" VerticalAlignment="Center"/>
+                    <Button Content="-" Command="{Binding DecreaseSpeedCommand}" />
+                    <TextBlock Text="{Binding PlaybackSpeed, StringFormat={}{0:F2}x}" Foreground="White" VerticalAlignment="Center" Width="40" TextAlignment="Center"/>
+                    <Button Content="+" Command="{Binding IncreaseSpeedCommand}" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="10,0,0,0">
+                    <TextBlock Text="Volume:" Foreground="White" VerticalAlignment="Center"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" Width="100" />
+                    <CheckBox Content="Mute" IsChecked="{Binding IsMuted}" Foreground="White"/>
                 </StackPanel>
             </Grid>
         </StackPanel>

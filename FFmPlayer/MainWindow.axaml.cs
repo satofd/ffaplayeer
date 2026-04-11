@@ -1,4 +1,8 @@
+using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using FFmPlayer.ViewModels;
 
 namespace FFmPlayer;
@@ -16,12 +20,12 @@ public partial class MainWindow : Window
         {
             if (DataContext is MainViewModel vm)
             {
-                vm.ShowSettingsWindowAction = () => 
+                vm.ShowSettingsWindowAction = () =>
                 {
                     if (_settingsWindow == null || !_settingsWindow.IsVisible)
                     {
                         _settingsWindow = new SettingsWindow { DataContext = this.DataContext };
-                        _settingsWindow.Show();
+                        _settingsWindow.ShowDialog(this);
                     }
                     else
                     {
@@ -47,27 +51,59 @@ public partial class MainWindow : Window
                     var options = new Avalonia.Platform.Storage.FilePickerOpenOptions
                     {
                         Title = "Open Media File",
-                        AllowMultiple = false
+                        AllowMultiple = true
                     };
                     var result = await StorageProvider.OpenFilePickerAsync(options);
                     if (result != null && result.Count > 0)
                     {
-                        vm.LoadMedia(result[0].Path.LocalPath);
+                        var paths = result.Select(f => f.TryGetLocalPath()).Where(p => p != null).Cast<string>();
+                        vm.AddFilesToPlaylist(paths, clearExisting: true); // Replace existing queue
                     }
                 };
             }
         };
 
-        AddHandler(Avalonia.Input.DragDrop.DropEvent, OnDrop);
+        AddHandler(DragDrop.DropEvent, OnDrop);
         KeyDown += OnKeyDown;
     }
 
-    private void OnDrop(object? sender, Avalonia.Input.DragEventArgs e)
+    private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        // 11.xでのドラッグ＆ドロップAPIの仕様差(Dataプロパティエラー)回避のため一時スキップ
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            BeginMoveDrag(e);
+        }
     }
 
-    private void OnKeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+    private void OnMinimizeClick(object? sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void OnMaximizeClick(object? sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
+
+    private void OnCloseClick(object? sender, RoutedEventArgs e)
+    {
+        Close();
+    }
+
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            var files = e.DataTransfer?.TryGetFiles();
+            if (files != null)
+            {
+                var paths = files.Select(f => f.TryGetLocalPath()).Where(p => p != null).Cast<string>();
+                vm.AddFilesToPlaylist(paths, clearExisting: true); // Replace playlist when dropped on main window
+            }
+        }
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (DataContext is MainViewModel vm)
         {
@@ -75,7 +111,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnSliderPointerCaptureLost(object? sender, Avalonia.Input.PointerCaptureLostEventArgs e)
+    private void OnSliderPointerCaptureLost(object? sender, PointerCaptureLostEventArgs e)
     {
         if (sender is Slider slider && DataContext is MainViewModel vm)
         {

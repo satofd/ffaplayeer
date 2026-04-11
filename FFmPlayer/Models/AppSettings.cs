@@ -8,7 +8,8 @@ public enum PlaybackMode
 {
     Sequential,
     Random,
-    RepeatOne
+    RepeatOne,
+    Off
 }
 
 public class AppSettings
