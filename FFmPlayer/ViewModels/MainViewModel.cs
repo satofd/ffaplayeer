@@ -58,6 +58,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public Action? ShowSettingsWindowAction { get; set; }
     public Action? ShowPlaylistWindowAction { get; set; }
     public Action? OpenFileAction { get; set; }
+    
+    public AppSettings Settings => _settings;
 
     public MainViewModel(SettingsService settingsService, AppSettings settings)
     {
