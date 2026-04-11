@@ -1,0 +1,8 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="FFmPlayer.PlaylistWindow"
+        Title="プレイリスト" Width="400" Height="600" Background="#1E1E1E">
+    <Grid>
+        <TextBlock Text="プレイリスト画面 (未実装)" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="20"/>
+    </Grid>
+</Window>

@@ -1,0 +1,61 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:FFmPlayer.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="FFmPlayer.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Title="FFmPlayer"
+        Background="#1E1E1E"
+        ExtendClientAreaToDecorationsHint="True">
+
+    <Grid RowDefinitions="*,Auto">
+        <!-- Video Area with Context Menu -->
+        <Border Grid.Row="0" Background="Black">
+            <Border.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="設定 (Settings)" Command="{Binding OpenSettings}"/>
+                    <MenuItem Header="プレイリスト (Playlist)" Command="{Binding OpenPlaylist}"/>
+                </ContextMenu>
+            </Border.ContextMenu>
+            
+            <Panel>
+                <Image x:Name="VideoImage" Stretch="Uniform" />
+                <!-- OSD Layer -->
+                <TextBlock Text="{Binding OsdMessage}" Foreground="White" FontSize="24"
+                           VerticalAlignment="Top" HorizontalAlignment="Left" Margin="20"/>
+            </Panel>
+        </Border>
+
+        <!-- Controls Area -->
+        <StackPanel Grid.Row="1" Background="#2D2D30" Orientation="Vertical">
+            <!-- Seek Bar -->
+            <Slider Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position}" Margin="10,0"/>
+            
+            <Grid ColumnDefinitions="Auto, *, Auto, Auto" Margin="5">
+                
+                <!-- Left: Mute & Volume -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <CheckBox IsChecked="{Binding IsMuted}" Content="Mute" Foreground="White" Margin="5,0"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" Width="100" Margin="5,0" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Center: Playback Controls -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Button Command="{Binding PlayListPrev}" Content="⏮" Width="40" Margin="2"/>
+                    <Button Command="{Binding PlayPause}" Content="▶/⏸" Width="60" Margin="2"/>
+                    <Button Command="{Binding Stop}" Content="⏹" Width="40" Margin="2"/>
+                    <Button Command="{Binding PlayListNext}" Content="⏭" Width="40" Margin="2"/>
+                </StackPanel>
+                
+                <!-- Right: Playback Speed -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="5,0">
+                    <TextBlock Text="{Binding PlaybackSpeed, StringFormat='速度: {0:F1}x'}" Foreground="White" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <Button Command="{Binding DecreaseSpeed}" Content="-" Width="30" Margin="1"/>
+                    <Button Command="{Binding IncreaseSpeed}" Content="+" Width="30" Margin="1"/>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Grid>
+</Window>
