@@ -55,6 +55,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private WriteableBitmap? _videoFrameBitmap;
 
+    public System.Collections.ObjectModel.ObservableCollection<string> Playlist { get; } = new();
+
+    [ObservableProperty]
+    private string? _currentPlaylistItem;
+
     public Action? ShowSettingsWindowAction { get; set; }
     public Action? ShowPlaylistWindowAction { get; set; }
     public Action? OpenFileAction { get; set; }
@@ -148,6 +153,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         Stop();
 
+        if (!Playlist.Contains(url))
+        {
+            Playlist.Add(url);
+        }
+        CurrentPlaylistItem = url;
+
         _decoder = new FFmpegDecoder();
         if (!_decoder.Initialize(url))
         {
@@ -221,11 +232,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
                             using var fb = VideoFrameBitmap.Lock();
                             Marshal.Copy(data, 0, fb.Address, data.Length);
                         }
+                        OnPropertyChanged(nameof(VideoFrameBitmap));
                     });
                 }
                 else if (type == FFmpegDecoder.FrameType.Audio)
                 {
-                    // If mute is toggled, it's handled via SetVolume, but we still feed audio to keep clock moving
                     _audioPlayer!.AddSamples(data, 0, data.Length);
                 }
             }

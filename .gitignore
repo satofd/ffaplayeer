@@ -11,6 +11,8 @@
 publish/
 ffmpeg/
 tmp_ffmpeg_autogen/
+publish_output/
+
 *.lnk
 
 # Build results

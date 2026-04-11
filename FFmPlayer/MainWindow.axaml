@@ -8,7 +8,7 @@
         x:DataType="vm:MainViewModel"
         Title="FFmPlayer"
         Background="#1E1E1E"
-        ExtendClientAreaToDecorationsHint="True"
+        SystemDecorations="None"
         DragDrop.AllowDrop="True">
 
     <Grid RowDefinitions="*,Auto">
