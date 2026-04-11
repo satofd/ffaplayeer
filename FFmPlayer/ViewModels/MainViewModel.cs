@@ -275,9 +275,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         if (_backfillTargetPts >= 0)
         {
-            // すでにバックフィル（過去方向へのシークとデコード）が走っている場合は、
-            // 余計なシーク要求を出してデコーダーをリセットしてしまわないよう、目標値だけを更新する
-            _backfillTargetPts = Math.Max(0, _backfillTargetPts - 1.0 / (_decoder.Framerate > 0 ? _decoder.Framerate : 30.0));
+            // バックフィル（キャッシュ再構築）中は入力を完全に無視することで、
+            // キー長押しによって一気に数秒分戻ってしまう（大きく前に戻る）現象を防ぎ、
+            // 必ず再構築後の1コマずつを取得させるように強制する。
             return;
         }
 
@@ -458,6 +458,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 if (type == FFmpegDecoder.FrameType.EndOfStream)
                 {
                     targetSeekTimeAfterFlush = -1;
+                    _backfillTargetPts = -1;
                     _frameBuffer.Enqueue(new VideoFrameData { IsEndOfStream = true });
                     // ファイルの終端に達した場合は無駄なCPU消費を避けるため長めに待機
                     await Task.Delay(500, token);
