@@ -629,6 +629,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void PlayPause()
     {
+        if (_decoder == null && !string.IsNullOrEmpty(CurrentPlaylistItem))
+        {
+            LoadMedia(CurrentPlaylistItem);
+            return;
+        }
+
         if (IsPlaying)
         {
             IsPlaying = false;
@@ -664,6 +670,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _decoder?.Dispose();
         _decoder = null;
+        
+        VideoFrameBitmap = null;
         
         _videoFrames = new ConcurrentQueue<VideoFrameData>();
 
