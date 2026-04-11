@@ -80,6 +80,12 @@ public class AudioPlayer : IDisposable
         return (double)positionBytes / _bufferedWaveProvider.WaveFormat.AverageBytesPerSecond;
     }
 
+    public double GetBufferedSeconds()
+    {
+        if (_bufferedWaveProvider == null) return 0;
+        return _bufferedWaveProvider.BufferedDuration.TotalSeconds;
+    }
+
     public void ResetClock()
     {
         if (_waveOut != null)

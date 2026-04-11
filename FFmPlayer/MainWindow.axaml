@@ -6,7 +6,6 @@
         Title="FFmPlayer"
         Background="#1E1E1E"
         ExtendClientAreaToDecorationsHint="True"
-        ExtendClientAreaChromeHints="NoChrome"
         DragDrop.AllowDrop="True">
 
     <Grid RowDefinitions="Auto, *, Auto">

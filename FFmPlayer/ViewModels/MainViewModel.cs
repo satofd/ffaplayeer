@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -23,6 +24,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private AudioPlayer? _audioPlayer;
     private CancellationTokenSource? _decodeCts;
     private Task? _decodeTask;
+    private Task? _renderTask;
+
+    private class VideoFrameData
+    {
+        public double Pts { get; set; }
+        public byte[] Data { get; set; } = Array.Empty<byte>();
+        public bool IsEndOfStream { get; set; }
+    }
+    
+    private ConcurrentQueue<VideoFrameData> _videoFrames = new();
 
     private double _baseSeconds = 0;
 
@@ -175,9 +186,19 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPaused = true;
         _audioPlayer?.Pause();
         
-        // Synchronously read until we get a video frame
         while (true)
         {
+            if (_videoFrames.TryDequeue(out var cachedFrame)) {
+                if (cachedFrame.IsEndOfStream) break;
+                Position = cachedFrame.Pts;
+                if (VideoFrameBitmap != null)
+                {
+                    using var fb = VideoFrameBitmap.Lock();
+                    Marshal.Copy(cachedFrame.Data, 0, fb.Address, cachedFrame.Data.Length);
+                }
+                break;
+            }
+
             var type = _decoder.TryDecodeNextFrame(out double pts, out byte[] data, out _);
             if (type == FFmpegDecoder.FrameType.EndOfStream || type == FFmpegDecoder.FrameType.Error) break;
             if (type == FFmpegDecoder.FrameType.Video)
@@ -281,8 +302,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPlaying = true;
         IsPaused = false;
         
+        _videoFrames = new ConcurrentQueue<VideoFrameData>();
+
         _decodeCts = new CancellationTokenSource();
         _decodeTask = Task.Run(() => DecodeLoopAsync(_decodeCts.Token));
+        _renderTask = Task.Run(() => VideoRenderLoopAsync(_decodeCts.Token));
         
         _audioPlayer.Play();
         OnPropertyChanged(nameof(IsStopped));
@@ -300,41 +324,24 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     continue;
                 }
 
+                if (_videoFrames.Count >= _settings.FrameBufferSize || 
+                    (_audioPlayer != null && _audioPlayer.GetBufferedSeconds() > 4.0))
+                {
+                    await Task.Delay(10, token);
+                    continue;
+                }
+
                 var type = _decoder.TryDecodeNextFrame(out double pts, out byte[] data, out int strideOrSize);
 
                 if (type == FFmpegDecoder.FrameType.EndOfStream)
                 {
-                    Dispatcher.UIThread.Post(() => {
-                        Stop();
-                        AdvancePlaylist();
-                    });
+                    _videoFrames.Enqueue(new VideoFrameData { IsEndOfStream = true });
                     break;
                 }
                 
                 if (type == FFmpegDecoder.FrameType.Video)
                 {
-                    double audioMasterSec = _baseSeconds + _audioPlayer!.GetPlayedSeconds() * PlaybackSpeed;
-                    double drift = pts - audioMasterSec;
-
-                    if (drift > _settings.VideoLeadSleepThresholdSeconds)
-                    {
-                        await Task.Delay((int)(drift * 1000 / PlaybackSpeed), token);
-                    }
-                    else if (drift < -_settings.VideoDropLagThresholdSeconds)
-                    {
-                        continue; // Drop frame
-                    }
-
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        Position = pts;
-                        if (VideoFrameBitmap != null)
-                        {
-                            using var fb = VideoFrameBitmap.Lock();
-                            Marshal.Copy(data, 0, fb.Address, data.Length);
-                        }
-                        OnPropertyChanged(nameof(VideoFrameBitmap));
-                    });
+                    _videoFrames.Enqueue(new VideoFrameData { Pts = pts, Data = data });
                 }
                 else if (type == FFmpegDecoder.FrameType.Audio)
                 {
@@ -346,6 +353,69 @@ public partial class MainViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             Logger.Error("Decode loop exception", ex);
+        }
+    }
+
+    private async Task VideoRenderLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                if (IsPaused)
+                {
+                    await Task.Delay(10, token);
+                    continue;
+                }
+
+                if (_videoFrames.TryPeek(out var frame))
+                {
+                    if (frame.IsEndOfStream)
+                    {
+                        Dispatcher.UIThread.Post(() => {
+                            Stop();
+                            AdvancePlaylist();
+                        });
+                        break;
+                    }
+
+                    double audioMasterSec = _baseSeconds + _audioPlayer!.GetPlayedSeconds() * PlaybackSpeed;
+                    double drift = frame.Pts - audioMasterSec;
+
+                    if (drift > _settings.VideoLeadSleepThresholdSeconds)
+                    {
+                        await Task.Delay((int)(drift * 1000 / PlaybackSpeed), token);
+                        continue;
+                    }
+
+                    _videoFrames.TryDequeue(out _);
+
+                    if (drift < -_settings.VideoDropLagThresholdSeconds)
+                    {
+                        continue; // Drop frame
+                    }
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        Position = frame.Pts;
+                        if (VideoFrameBitmap != null)
+                        {
+                            using var fb = VideoFrameBitmap.Lock();
+                            Marshal.Copy(frame.Data, 0, fb.Address, frame.Data.Length);
+                        }
+                        OnPropertyChanged(nameof(VideoFrameBitmap));
+                    });
+                }
+                else
+                {
+                    await Task.Delay(10, token);
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception ex)
+        {
+            Logger.Error("Video render loop exception", ex);
         }
     }
 
@@ -401,6 +471,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         // Wait for decoder to pause naturally or just force it
         _decoder.RequestSeek(seconds);
         _audioPlayer?.ClearBuffer();
+        _videoFrames = new ConcurrentQueue<VideoFrameData>();
         _baseSeconds = seconds;
         
         // In precise sync, we need to know how much audio we've pushed previously, so reset audio clock
@@ -445,6 +516,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         _decoder?.Dispose();
         _decoder = null;
+        
+        _videoFrames = new ConcurrentQueue<VideoFrameData>();
 
         OnPropertyChanged(nameof(IsStopped));
     }
