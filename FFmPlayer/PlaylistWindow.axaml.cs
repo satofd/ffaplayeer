@@ -20,7 +20,10 @@ public partial class PlaylistWindow : Window
             {
                 if (e.AddedItems.Count > 0 && e.AddedItems[0] is string url && DataContext is MainViewModel vm)
                 {
-                    vm.LoadMedia(url);
+                    if (vm.CurrentPlaylistItem != url)
+                    {
+                        vm.LoadMedia(url);
+                    }
                 }
             };
         }
