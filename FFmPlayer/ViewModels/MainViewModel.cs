@@ -53,6 +53,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private TimeSpan _timeDuration;
 
     [ObservableProperty]
+    private TimeSpan _timeRemaining;
+
+    [ObservableProperty]
+    private long _currentFrame;
+
+    [ObservableProperty]
+    private long _maxFrame;
+
+    [ObservableProperty]
     private double _volume = 1.0;
 
     [ObservableProperty]
@@ -253,6 +262,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
 
         Duration = _decoder.Duration;
+        if (_decoder.Framerate > 0)
+        {
+            MaxFrame = (long)(Duration * _decoder.Framerate);
+        }
+
         VideoFrameBitmap = new WriteableBitmap(
             new PixelSize(_decoder.VideoWidth, _decoder.VideoHeight),
             new Vector(96, 96),
@@ -349,11 +363,20 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnPositionChanged(double value)
     {
         TimePosition = TimeSpan.FromSeconds(value);
+        TimeRemaining = TimeSpan.FromSeconds(Math.Max(0, Duration - value));
+        if (_decoder != null)
+        {
+            CurrentFrame = (long)(value * _decoder.Framerate);
+        }
     }
 
     partial void OnDurationChanged(double value)
     {
         TimeDuration = TimeSpan.FromSeconds(value);
+        if (_decoder != null)
+        {
+            MaxFrame = (long)(value * _decoder.Framerate);
+        }
     }
 
     [RelayCommand]
