@@ -225,13 +225,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPaused = true;
         _audioPlayer?.Pause();
         
-        var type = _decoder.StepForwardOneVideoFrame(out double pts, out byte[] data, out int strideOrSize);
-        if (type == FFmpegDecoder.FrameType.Video)
+        if (_frameBuffer.TryDequeue(out var frame))
         {
-            var nextFrame = new VideoFrameData { Pts = pts, Data = data };
-            _frameBuffer.Enqueue(nextFrame);
-            Position = pts;
-            UpdateVideoBitmap(nextFrame);
+            if (!frame.IsEndOfStream)
+            {
+                Position = frame.Pts;
+                UpdateVideoBitmap(frame);
+            }
         }
     }
 

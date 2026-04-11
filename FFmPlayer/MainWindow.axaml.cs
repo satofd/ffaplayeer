@@ -94,7 +94,7 @@ public partial class MainWindow : Window
 
         // ドラッグ＆ドロップおよびキーボードショートカット用のイベント登録
         AddHandler(DragDrop.DropEvent, OnDrop);
-        KeyDown += OnKeyDown;
+        AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Tunnel);
         
         // シークバー（プログレスバー）に対するマウス操作イベントを登録します
         var slider = this.FindControl<Slider>("SeekSlider");

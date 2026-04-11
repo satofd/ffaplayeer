@@ -237,54 +237,7 @@ public unsafe class FFmpegDecoder : IDisposable
         }
     }
 
-    /// <summary>
-    /// 音声パケットを無視し、次の映像フレーム1枚だけを確実に取り出して返します。
-    /// コマ送り用途に使用します。
-    /// </summary>
-    public FrameType StepForwardOneVideoFrame(out double pts, out byte[] data, out int strideOrCount)
-    {
-        pts = 0;
-        data = Array.Empty<byte>();
-        strideOrCount = 0;
-        
-        if (_formatContext == null) return FrameType.None;
 
-        while (true)
-        {
-            int ret = ffmpeg.av_read_frame(_formatContext, _packet);
-            if (ret == ffmpeg.AVERROR_EOF) return FrameType.EndOfStream;
-            if (ret < 0) return FrameType.Error;
-
-            if (_packet->stream_index == _videoStreamIndex)
-            {
-                ret = ffmpeg.avcodec_send_packet(_videoCodecContext, _packet);
-                ffmpeg.av_packet_unref(_packet);
-                if (ret < 0) continue;
-
-                ret = ffmpeg.avcodec_receive_frame(_videoCodecContext, _frame);
-                if (ret == ffmpeg.AVERROR(ffmpeg.EAGAIN) || ret == ffmpeg.AVERROR_EOF) continue;
-                if (ret < 0) return FrameType.Error;
-
-                pts = _frame->best_effort_timestamp * ffmpeg.av_q2d(VideoTimeBase);
-                
-                ffmpeg.sws_scale(_swsContext,
-                    _frame->data, _frame->linesize, 0, _frame->height,
-                    _dstVideoFrame->data, _dstVideoFrame->linesize);
-
-                int size = VideoWidth * VideoHeight * 4;
-                data = new byte[size];
-                Marshal.Copy((IntPtr)_dstVideoData, data, 0, size);
-                strideOrCount = VideoWidth * 4;
-                
-                ffmpeg.av_frame_unref(_frame);
-                return FrameType.Video;
-            }
-            else
-            {
-                ffmpeg.av_packet_unref(_packet); // Ignore Audio and other packets
-            }
-        }
-    }
 
     public void Dispose()
     {
