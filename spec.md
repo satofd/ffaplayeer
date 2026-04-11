@@ -156,13 +156,14 @@
 
 ### 7.1 基本式
 
-- `audioMasterSec = baseSeconds + audioPlayedSeconds`
+- `audioMasterSec = baseSeconds + audioPlayedSeconds - AudioSyncDelaySeconds`
 - `drift = videoPtsSec - audioMasterSec`
 
 補足:
 
 - `audioPlayedSeconds` は NAudio の再生位置を相対化した値
 - `baseSeconds` は seek 後などに再アンカーされる基準秒
+- `AudioSyncDelaySeconds` は意図的な映像の遅延確保（デフォルト 0.500 秒）。描画オーバーヘッド等を吸収するための特例ワークアラウンド。
 
 ### 7.2 閾値動作
 

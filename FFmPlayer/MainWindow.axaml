@@ -84,15 +84,8 @@
 
                     <!-- Time Display -->
                     <StackPanel Orientation="Horizontal" Margin="10,0,5,0" VerticalAlignment="Center">
-                        <TextBlock Foreground="White" Text="{Binding TimePosition, StringFormat={}{0:hh\\:mm\\:ss}}" FontSize="12"/>
-                        <TextBlock Foreground="White" Text=" / " FontSize="12"/>
-                        <TextBlock Foreground="White" Text="{Binding TimeDuration, StringFormat={}{0:hh\\:mm\\:ss}}" FontSize="12"/>
-                        <TextBlock Foreground="White" Text=" (-" FontSize="12"/>
-                        <TextBlock Foreground="White" Text="{Binding TimeRemaining, StringFormat={}{0:hh\\:mm\\:ss}}" FontSize="12"/>
-                        <TextBlock Foreground="White" Text=") | フレーム: " FontSize="12"/>
-                        <TextBlock Foreground="White" Text="{Binding CurrentFrame}" FontSize="12"/>
-                        <TextBlock Foreground="White" Text=" / " FontSize="12"/>
-                        <TextBlock Foreground="White" Text="{Binding MaxFrame}" FontSize="12"/>
+                        <TextBlock Foreground="White" Text="{Binding TimeDisplayText}" FontSize="12"/>
+                        <TextBlock Foreground="Orange" Text=" [A-B]" FontSize="12" Margin="5,0,0,0" IsVisible="{Binding IsAbLoopActive}"/>
                     </StackPanel>
                 </StackPanel>
                 

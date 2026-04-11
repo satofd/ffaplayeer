@@ -31,19 +31,15 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     // 音ズレ補正用ディレイ（秒）。必要に応じて変更可能。
     private const double AudioSyncDelaySeconds = 0.500;
-
-    private class VideoFrameData
-    {
-        public double Pts { get; set; }
-        public byte[] Data { get; set; } = Array.Empty<byte>();
-        public bool IsEndOfStream { get; set; }
-    }
     
-    // UIに即時表示できるよう、デコードされた映像フレームを一時的に溜めておくためのスレッドセーフなキュー
-    private ConcurrentQueue<VideoFrameData> _videoFrames = new();
+    // UIに即時表示できるよう、デコード済みの過去・未来の映像フレームを保持するリングバッファ
+    private FrameRingBuffer _frameBuffer = new();
 
     // ユーザーがシークや再生操作を行った際、映像と音声を同期させるための「基本となる基準時間（秒）」
     private double _baseSeconds = 0;
+    
+    // コマ戻しのバックフィルなどで再デコード要求を出す際の目標となるPTS
+    private double _backfillTargetPts = -1;
 
     [ObservableProperty]
     private bool _isPlaying;
@@ -84,6 +80,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private long _maxFrame;
 
     [ObservableProperty]
+    private string _timeDisplayText = "";
+
+    [ObservableProperty]
     private double _volume = 1.0;
 
     [ObservableProperty]
@@ -94,6 +93,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private WriteableBitmap? _videoFrameBitmap;
+
+    [ObservableProperty]
+    private double _abStart = -1;
+
+    [ObservableProperty]
+    private double _abEnd = -1;
 
     public System.Collections.ObjectModel.ObservableCollection<string> Playlist { get; } = new();
 
@@ -178,9 +183,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
         if (shortcut == _settings.ShortcutPlayPause) { PlayPause(); return true; }
         if (shortcut == _settings.ShortcutStop) { Stop(); return true; }
-        // Implement Seeking and Step
-        if (shortcut == _settings.ShortcutSeekForward1s) { RequestSeek(Position + 1); return true; }
-        if (shortcut == _settings.ShortcutSeekBackward1s) { RequestSeek(Position - 1); return true; }
+        
+        if (shortcut == _settings.ShortcutSeekForward1s) { SeekForward1(); return true; }
+        if (shortcut == _settings.ShortcutSeekBackward1s) { SeekBackward1(); return true; }
+        if (shortcut == _settings.ShortcutSeekForward10s) { SeekForward10(); return true; }
+        if (shortcut == _settings.ShortcutSeekBackward10s) { SeekBackward10(); return true; }
+        if (shortcut == _settings.ShortcutSeekForward60s) { SeekForward60(); return true; }
+        if (shortcut == _settings.ShortcutSeekBackward60s) { SeekBackward60(); return true; }
         
         if (shortcut == _settings.ShortcutToggleMute) { IsMuted = !IsMuted; return true; }
         if (shortcut == _settings.ShortcutToggleFullscreen) { ToggleFullscreenAction?.Invoke(); return true; }
@@ -189,12 +198,17 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (shortcut == _settings.ShortcutOpenUrl) { OpenUrlAction?.Invoke(); return true; }
         if (shortcut == _settings.ShortcutShowPlaylist) { OpenPlaylist(); return true; }
         if (shortcut == _settings.ShortcutShowMediaInfo) { ShowMediaInfoAction?.Invoke(); return true; }
-        if (shortcut == _settings.ShortcutIncreaseSpeed) { IncreaseSpeed(); return true; }
-        if (shortcut == _settings.ShortcutDecreaseSpeed) { DecreaseSpeed(); return true; }
+        if (shortcut == _settings.ShortcutIncreaseSpeed || shortcut == _settings.ShortcutIncreaseSpeedAlt) { IncreaseSpeed(); return true; }
+        if (shortcut == _settings.ShortcutDecreaseSpeed || shortcut == _settings.ShortcutDecreaseSpeedAlt) { DecreaseSpeed(); return true; }
         if (shortcut == _settings.ShortcutResetSpeed) { PlaybackSpeed = 1.0; return true; }
 
-        if (key == Avalonia.Input.Key.Right && modifiers == Avalonia.Input.KeyModifiers.Alt) { StepForward(); return true; }
-        if (key == Avalonia.Input.Key.Left && modifiers == Avalonia.Input.KeyModifiers.Alt) { StepBackward(); return true; }
+        if (shortcut == _settings.ShortcutStepForward) { StepForward(); return true; }
+        if (shortcut == _settings.ShortcutStepBackward) { StepBackward(); return true; }
+        
+        if (shortcut == _settings.ShortcutSetAbStart) { SetAbStart(); return true; }
+        if (shortcut == _settings.ShortcutSetAbEnd) { SetAbEnd(); return true; }
+        if (shortcut == _settings.ShortcutCycleTimeDisplay) { CycleTimeDisplay(); return true; }
+        if (shortcut == _settings.ShortcutTakeScreenshot) { TakeScreenshot(); return true; }
 
         return false;
     }
@@ -211,11 +225,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPaused = true;
         _audioPlayer?.Pause();
         
-        if (_videoFrames.TryDequeue(out var cachedFrame)) {
-            if (!cachedFrame.IsEndOfStream) {
-                Position = cachedFrame.Pts;
-                UpdateVideoBitmap(cachedFrame);
-            }
+        var type = _decoder.StepForwardOneVideoFrame(out double pts, out byte[] data, out int strideOrSize);
+        if (type == FFmpegDecoder.FrameType.Video)
+        {
+            var nextFrame = new VideoFrameData { Pts = pts, Data = data };
+            _frameBuffer.Enqueue(nextFrame);
+            Position = pts;
+            UpdateVideoBitmap(nextFrame);
         }
     }
 
@@ -225,7 +241,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// </summary>
     private void UpdateVideoBitmap(VideoFrameData frame)
     {
-        if (VideoFrameBitmap != null)
+        if (VideoFrameBitmap != null && frame.Data != null && frame.Data.Length > 0)
         {
             using var fb = VideoFrameBitmap.Lock();
             int width = VideoFrameBitmap.PixelSize.Width;
@@ -246,16 +262,31 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// 現在の再生位置からコマ戻し（少し前の時間にシーク）を行います。
-    /// 現状は簡易的にわずかな時間（0.05秒）だけ巻き戻し、一時停止状態へ移行します。
+    /// 現在の再生位置からコマ戻し（1フレーム戻る）を行います。
+    /// キャッシュから対象のフレームを検索し、なければ指定時間分巻き戻してキャッシュをバックフィルします。
     /// </summary>
     [RelayCommand]
     public void StepBackward()
     {
-        // For backwards step, generally need to seek a bit backwards and decode up to current frame - 1.
-        // It's very complex with FFmpeg, so naive approach:
-        RequestSeek(Math.Max(0, Position - 0.05)); 
+        if (_decoder == null) return;
+        IsPlaying = true;
         IsPaused = true;
+        _audioPlayer?.Pause();
+
+        double targetPts = Math.Max(0, Position - 1.0 / (_decoder.Framerate > 0 ? _decoder.Framerate : 30.0));
+        var cachedFrame = _frameBuffer.StepBackward(targetPts);
+        if (cachedFrame != null)
+        {
+            Position = cachedFrame.Pts;
+            UpdateVideoBitmap(cachedFrame);
+        }
+        else
+        {
+            // Cache miss: backfill
+            double seekTime = Math.Max(0, targetPts - _settings.StepScanWindowBackwardSeconds);
+            _backfillTargetPts = targetPts;
+            RequestSeek(seekTime); // DecodeLoop will rapidly decode up to targetPts
+        }
     }
 
     [RelayCommand] public void SeekForward1() => RequestSeek(Position + 1);
@@ -344,7 +375,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPlaying = true;
         IsPaused = false;
         
-        _videoFrames = new ConcurrentQueue<VideoFrameData>();
+        _frameBuffer = new FrameRingBuffer 
+        { 
+            MaxFrames = _settings.FrameBufferSize,
+            MemoryLimitEnabled = _settings.MemoryLimitEnabled,
+            MemoryLimitMB = _settings.MemoryLimitMB
+        };
+        _backfillTargetPts = -1;
 
         _decodeCts = new CancellationTokenSource();
         _decodeTask = Task.Run(() => DecodeLoopAsync(_decodeCts.Token));
@@ -359,7 +396,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     /// <summary>
     /// バックグラウンドでFFmpegからメディアパケットを連続で読み込み、デコードするループ処理です。
-    /// デコードした映像フレームは _videoFrames キューに一時保存され、音声フレームはそのまま NAudio に渡されます。
+    /// デコードした映像フレームは _frameBuffer キューに一時保存され、音声フレームはそのまま NAudio に渡されます。
     /// （シーク要求があった場合は古いフレームを破棄し、新しい時間軸から読み込みを再開します）
     /// </summary>
     /// <param name="token">終了・キャンセル要求を受け取るためのトークン</param>
@@ -380,24 +417,27 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     _decoder?.RequestSeek(target);
                     _audioPlayer?.ClearBuffer();
                     // キューにたまっている古いデコード済みフレームをすべて破棄
-                    while (_videoFrames.TryDequeue(out _)) { } 
+                    _frameBuffer.Clear();
                     
-                    // シーク処理直後であることを記録し、強制的に次のフレームを画面に描画させるフラグをオンにする
                     targetSeekTimeAfterFlush = target;
-                    _needsPreviewFrame = true;
+                    // もしバックフィル目的のシークでなければ、シーク直後のプレビュー表示をONにする
+                    if (_backfillTargetPts < 0)
+                    {
+                        _needsPreviewFrame = true;
+                    }
                     continue;
                 }
 
                 // デコーダが存在しないか、一時停止中かつ既に十分なフレーム（5枚以上）が溜まっているなら休止
-                // (一時停止中も描画のために数枚だけは読み込んでおく設計)
-                if (_decoder == null || (IsPaused && _videoFrames.Count >= 5))
+                // (一時停止中も描画のために数枚だけは読み込んでおく設計。ただしバックフィル中は無視して全力でデコードする)
+                if (_decoder == null || (IsPaused && _frameBuffer.UnreadCount >= 5 && _backfillTargetPts < 0))
                 {
                     await Task.Delay(50, token);
                     continue;
                 }
 
                 // 再生中で、十分な映像フレーム（設定値分）または音声バッファ（4秒以上）が既に溜まっているなら休止
-                if (!IsPaused && (_videoFrames.Count >= _settings.FrameBufferSize || 
+                if (!IsPaused && (_frameBuffer.UnreadCount >= _settings.FrameBufferSize || 
                     (_audioPlayer != null && _audioPlayer.GetBufferedSeconds() > 4.0)))
                 {
                     await Task.Delay(10, token);
@@ -410,7 +450,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 if (type == FFmpegDecoder.FrameType.EndOfStream)
                 {
                     targetSeekTimeAfterFlush = -1;
-                    _videoFrames.Enqueue(new VideoFrameData { IsEndOfStream = true });
+                    _frameBuffer.Enqueue(new VideoFrameData { IsEndOfStream = true });
                     // ファイルの終端に達した場合は無駄なCPU消費を避けるため長めに待機
                     await Task.Delay(500, token);
                     continue;
@@ -428,9 +468,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
                         _baseSeconds = pts;
                         targetSeekTimeAfterFlush = -1;
                         _audioPlayer?.ResetClock();
-                        Dispatcher.UIThread.Post(() => {
-                            if (!IsDraggingSlider) Position = pts;
-                        });
+                        if (_backfillTargetPts < 0)
+                        {
+                            Dispatcher.UIThread.Post(() => {
+                                if (!IsDraggingSlider) Position = pts;
+                            });
+                        }
                     }
                     else if (type == FFmpegDecoder.FrameType.Error)
                     {
@@ -445,18 +488,35 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
                 if (type == FFmpegDecoder.FrameType.Video)
                 {
-                    _videoFrames.Enqueue(new VideoFrameData { Pts = pts, Data = data });
-                    
-                    if (_needsPreviewFrame)
+                    var f = new VideoFrameData { Pts = pts, Data = data };
+                    _frameBuffer.Enqueue(f);
+
+                    // バックフィル中の場合、目標時刻に達したら描画させてバックフィル状態を解除
+                    if (_backfillTargetPts >= 0)
                     {
-                        var previewData = data;
+                        if (pts >= _backfillTargetPts)
+                        {
+                            var targetFrame = _frameBuffer.StepBackward(pts);
+                            if (targetFrame != null)
+                            {
+                                Dispatcher.UIThread.Post(() => {
+                                    Position = targetFrame.Pts;
+                                    UpdateVideoBitmap(targetFrame);
+                                });
+                            }
+                            _backfillTargetPts = -1;
+                        }
+                    }
+                    // 普通のシークプレビュー処理の場合
+                    else if (_needsPreviewFrame)
+                    {
                         _needsPreviewFrame = false;
                         Dispatcher.UIThread.Post(() => {
-                            if (IsPaused) UpdateVideoBitmap(new VideoFrameData { Pts = pts, Data = previewData });
+                            if (IsPaused) UpdateVideoBitmap(new VideoFrameData { Pts = f.Pts, Data = f.Data });
                         });
                     }
                 }
-                else if (type == FFmpegDecoder.FrameType.Audio)
+                else if (type == FFmpegDecoder.FrameType.Audio && _backfillTargetPts < 0)
                 {
                     _audioPlayer!.AddSamples(data, 0, data.Length);
                 }
@@ -470,7 +530,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     /// <summary>
-    /// デコードされてキューに溜まった映像フレーム (`_videoFrames`) を取り出し、
+    /// デコードされてキューに溜まった映像フレーム (`_frameBuffer`) を取り出し、
     /// 現在の再生時間（音声基準時間など）と照らし合わせながら、AvaloniaのUIスレッドへ描画を依頼するループ処理です。
     /// （映像が早すぎる場合は待機し、遅すぎる場合はフレームをドロップしてA/V同期を保ちます）
     /// </summary>
@@ -489,7 +549,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 }
 
                 // キューに映像フレームが存在するかチェックする（取り出しはまだ行わない）
-                if (_videoFrames.TryPeek(out var frame))
+                if (_frameBuffer.TryPeek(out var frame))
                 {
                     // 動画が終わった場合（EndOfStreamフラグが立っている）
                     if (frame.IsEndOfStream)
@@ -499,6 +559,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
                             AdvancePlaylist(); // リピートや次の動画等、プレイリストの設定に合わせて次へ進む
                         });
                         break;
+                    }
+
+                    // A-Bループの判定処理
+                    if (AbStart >= 0 && AbEnd >= 0 && AbStart < AbEnd && frame.Pts >= AbEnd)
+                    {
+                        RequestSeek(AbStart);
+                        continue;
                     }
 
                     // 音声を基準とした「現在の正確な再生時間（マスタークロック）」を計算する
@@ -517,13 +584,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
                         continue;
                     }
 
-                    // 描画タイミングが来たため、初めてキューからフレームを取り出す
-                    _videoFrames.TryDequeue(out _);
+                    // 描画タイミングが来たため、初めてキューから未読フレームを取り出す
+                    _frameBuffer.TryDequeue(out _);
 
                     // 映像が音声より遅れすぎている場合は、このフレームは描画（表示）せずに破棄してA/V同期を合わせる
                     if (drift < -_settings.VideoDropLagThresholdSeconds)
                     {
-                        continue; // Drop frame
+                        continue; 
                     }
 
                     // UIスレッドを呼び出して、実際に画像を画面へ表示する
@@ -555,7 +622,6 @@ public partial class MainViewModel : ObservableObject, IDisposable
         // Ideally start a timer to clear after 3 seconds
         Task.Delay(3000).ContinueWith(_ => Dispatcher.UIThread.Post(() => {
             if (OsdMessage == msg) OsdVisible = false;
-            OsdMessage = "";
         }));
     }
 
@@ -567,6 +633,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             CurrentFrame = (long)(value * _decoder.Framerate);
         }
+        UpdateTimeDisplay();
     }
 
     partial void OnDurationChanged(double value)
@@ -576,19 +643,30 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             MaxFrame = (long)(value * _decoder.Framerate);
         }
+        UpdateTimeDisplay();
     }
 
-    [RelayCommand]
-    public void OpenSettings()
+    private void UpdateTimeDisplay()
     {
-        ShowSettingsWindowAction?.Invoke();
+        switch (_settings.TimeDisplayMode)
+        {
+            case 0:
+                TimeDisplayText = $"{TimePosition:hh\\:mm\\:ss\\.fff} / {TimeDuration:hh\\:mm\\:ss\\.fff}";
+                break;
+            case 1:
+                TimeDisplayText = $"-{TimeRemaining:hh\\:mm\\:ss\\.fff} / {TimeDuration:hh\\:mm\\:ss\\.fff}";
+                break;
+            case 2:
+                TimeDisplayText = $"Frame: {CurrentFrame} / {MaxFrame}";
+                break;
+            default:
+                TimeDisplayText = $"{TimePosition:hh\\:mm\\:ss} / {TimeDuration:hh\\:mm\\:ss}";
+                break;
+        }
     }
 
-    [RelayCommand]
-    public void OpenUrl()
-    {
-        OpenUrlAction?.Invoke();
-    }
+    [RelayCommand] public void OpenSettings() => ShowSettingsWindowAction?.Invoke();
+    [RelayCommand] public void OpenUrl() => OpenUrlAction?.Invoke();
 
     public string GetMediaInfoString()
     {
@@ -601,17 +679,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
                $"総フレーム数: {MaxFrame}";
     }
 
-    [RelayCommand]
-    public void ShowMediaInfo()
-    {
-        ShowMediaInfoAction?.Invoke();
-    }
-
-    [RelayCommand]
-    public void OpenPlaylist()
-    {
-        ShowPlaylistWindowAction?.Invoke();
-    }
+    [RelayCommand] public void ShowMediaInfo() => ShowMediaInfoAction?.Invoke();
+    [RelayCommand] public void OpenPlaylist() => ShowPlaylistWindowAction?.Invoke();
 
     /// <summary>
     /// 動画のシーク要求を行います。UIなどから時間（秒）を受け取り、バックグラウンドのデコードループへ通知します。
@@ -673,7 +742,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         
         VideoFrameBitmap = null;
         
-        _videoFrames = new ConcurrentQueue<VideoFrameData>();
+        _frameBuffer.Clear();
 
         OnPropertyChanged(nameof(IsStopped));
     }
@@ -681,23 +750,16 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// <summary>
     /// コンストラクタで初期化された設定値などに基づき、再生速度を0.1倍ずつ上げます（最大3.0倍）。
     /// </summary>
-    [RelayCommand]
-    public void IncreaseSpeed() => PlaybackSpeed = Math.Clamp(PlaybackSpeed + 0.1, 0.1, 3.0);
-
+    [RelayCommand] public void IncreaseSpeed() => PlaybackSpeed = Math.Clamp(PlaybackSpeed + 0.1, 0.1, 3.0);
     /// <summary>
     /// コンストラクタで初期化された設定値などに基づき、再生速度を0.1倍ずつ下げます（最低0.1倍）。
     /// </summary>
-    [RelayCommand]
-    public void DecreaseSpeed() => PlaybackSpeed = Math.Clamp(PlaybackSpeed - 0.1, 0.1, 3.0);
+    [RelayCommand] public void DecreaseSpeed() => PlaybackSpeed = Math.Clamp(PlaybackSpeed - 0.1, 0.1, 3.0);
 
     /// <summary>
     /// プレイリストにおける次のメディア（曲や動画）へ手動でスキップします。
     /// </summary>
-    [RelayCommand]
-    public void PlayListNext()
-    {
-        AdvancePlaylist();
-    }
+    [RelayCommand] public void PlayListNext() => AdvancePlaylist();
     
     /// <summary>
     /// プレイリストにおける前のメディアへ戻ります。ランダム、ループなどの再生モード設定（PlaybackMode）を加味して対象を決定します。
@@ -756,6 +818,57 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _settings.IsMuted = IsMuted;
         _settings.PlaybackSpeed = PlaybackSpeed;
         _settingsService.Save(_settings);
+    }
+
+    public bool IsAbLoopActive => AbStart >= 0 && AbEnd >= 0 && AbStart < AbEnd;
+
+    private void SetAbStart()
+    {
+        AbStart = Position;
+        if (AbEnd >= 0 && AbStart >= AbEnd) AbEnd = -1; // Reset End if invalid
+        ShowOsd($"A-B Start: {TimeSpan.FromSeconds(AbStart):hh\\:mm\\:ss}");
+        OnPropertyChanged(nameof(IsAbLoopActive));
+    }
+
+    private void SetAbEnd()
+    {
+        if (AbStart < 0 || Position <= AbStart)
+        {
+            ShowOsd("A-B Error: Invalid End Position");
+            return;
+        }
+        AbEnd = Position;
+        ShowOsd($"A-B End: {TimeSpan.FromSeconds(AbEnd):hh\\:mm\\:ss}\nA-B Loop Enabled");
+        OnPropertyChanged(nameof(IsAbLoopActive));
+    }
+
+    private void CycleTimeDisplay()
+    {
+        _settings.TimeDisplayMode = (_settings.TimeDisplayMode + 1) % 3;
+        UpdateTimeDisplay();
+        ShowOsd($"Time Display Mode: {_settings.TimeDisplayMode}");
+        OnPropertyChanged(nameof(TimeDisplayMode));
+    }
+
+    public int TimeDisplayMode => _settings.TimeDisplayMode;
+
+    private void TakeScreenshot()
+    {
+        if (VideoFrameBitmap == null) return;
+        try
+        {
+            var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyPictures), "FFmPlayer");
+            System.IO.Directory.CreateDirectory(dir);
+            var filename = $"Screenshot_{DateTime.Now:yyyyMMdd_HHmmss}.png";
+            var path = System.IO.Path.Combine(dir, filename);
+            VideoFrameBitmap.Save(path);
+            ShowOsd($"Screenshot Saved:\n{filename}");
+        }
+        catch (Exception ex)
+        {
+            Logger.Error("Screenshot Error", ex);
+            ShowOsd("Screenshot Capture Failed");
+        }
     }
 
     public void Dispose()
