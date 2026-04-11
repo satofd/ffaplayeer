@@ -21,7 +21,7 @@
             </Border.ContextMenu>
             
             <Panel>
-                <Image x:Name="VideoImage" Stretch="Uniform" />
+                <Image x:Name="VideoImage" Stretch="Uniform" Source="{Binding VideoFrameBitmap}" />
                 <!-- OSD Layer -->
                 <TextBlock Text="{Binding OsdMessage}" Foreground="White" FontSize="24"
                            VerticalAlignment="Top" HorizontalAlignment="Left" Margin="20"/>
