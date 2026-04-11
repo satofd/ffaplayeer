@@ -90,6 +90,11 @@ public partial class MainWindow : Window
         Close();
     }
 
+    private void OnFullscreenToggleClick(object? sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
+    }
+
     private void OnDrop(object? sender, DragEventArgs e)
     {
         if (DataContext is MainViewModel vm)

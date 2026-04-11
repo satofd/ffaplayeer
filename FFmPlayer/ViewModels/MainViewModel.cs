@@ -193,6 +193,13 @@ public partial class MainViewModel : ObservableObject, IDisposable
         IsPaused = true;
     }
 
+    [RelayCommand] public void SeekForward1() => RequestSeek(Position + 1);
+    [RelayCommand] public void SeekForward10() => RequestSeek(Position + 10);
+    [RelayCommand] public void SeekForward60() => RequestSeek(Position + 60);
+    [RelayCommand] public void SeekBackward1() => RequestSeek(Math.Max(0, Position - 1));
+    [RelayCommand] public void SeekBackward10() => RequestSeek(Math.Max(0, Position - 10));
+    [RelayCommand] public void SeekBackward60() => RequestSeek(Math.Max(0, Position - 60));
+
     public void AdvancePlaylist()
     {
         if (Playlist.Count == 0) return;
