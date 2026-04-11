@@ -26,6 +26,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private Task? _decodeTask;
     private Task? _renderTask;
 
+    // 音ズレ補正用ディレイ（秒）。必要に応じて変更可能。
+    private const double AudioSyncDelaySeconds = 0.500;
+
     private class VideoFrameData
     {
         public double Pts { get; set; }
@@ -130,6 +133,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public Action? ShowSettingsWindowAction { get; set; }
     public Action? ShowPlaylistWindowAction { get; set; }
     public Action? OpenFileAction { get; set; }
+    public Action? OpenUrlAction { get; set; }
+    public Action? ShowMediaInfoAction { get; set; }
+    public Action? ToggleFullscreenAction { get; set; }
+    public Action? ExitFullscreenAction { get; set; }
     
     public AppSettings Settings => _settings;
 
@@ -165,12 +172,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (shortcut == _settings.ShortcutSeekBackward1s) { RequestSeek(Position - 1); return true; }
         
         if (shortcut == _settings.ShortcutToggleMute) { IsMuted = !IsMuted; return true; }
-        if (shortcut == _settings.ShortcutToggleFullscreen) { /* TODO */ return true; }
-        if (shortcut == _settings.ShortcutExitFullscreen) { /* TODO */ return true; }
+        if (shortcut == _settings.ShortcutToggleFullscreen) { ToggleFullscreenAction?.Invoke(); return true; }
+        if (shortcut == _settings.ShortcutExitFullscreen) { ExitFullscreenAction?.Invoke(); return true; }
         if (shortcut == _settings.ShortcutOpenFile) { OpenFile(); return true; }
-        if (shortcut == _settings.ShortcutOpenUrl) { /* TODO */ return true; }
+        if (shortcut == _settings.ShortcutOpenUrl) { OpenUrlAction?.Invoke(); return true; }
         if (shortcut == _settings.ShortcutShowPlaylist) { OpenPlaylist(); return true; }
-        if (shortcut == _settings.ShortcutShowMediaInfo) { /* TODO */ return true; }
+        if (shortcut == _settings.ShortcutShowMediaInfo) { ShowMediaInfoAction?.Invoke(); return true; }
         if (shortcut == _settings.ShortcutIncreaseSpeed) { IncreaseSpeed(); return true; }
         if (shortcut == _settings.ShortcutDecreaseSpeed) { DecreaseSpeed(); return true; }
         if (shortcut == _settings.ShortcutResetSpeed) { PlaybackSpeed = 1.0; return true; }
@@ -429,6 +436,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
                     }
 
                     double audioMasterSec = _baseSeconds + _audioPlayer!.GetPlayedSeconds() * PlaybackSpeed;
+                    
+                    // 音ズレ補正（動画の描画を意図的に遅らせるディレイ）
+                    audioMasterSec -= AudioSyncDelaySeconds;
+
                     double drift = frame.Pts - audioMasterSec;
 
                     if (drift > _settings.VideoLeadSleepThresholdSeconds)
@@ -500,6 +511,29 @@ public partial class MainViewModel : ObservableObject, IDisposable
     }
 
     [RelayCommand]
+    public void OpenUrl()
+    {
+        OpenUrlAction?.Invoke();
+    }
+
+    public string GetMediaInfoString()
+    {
+        if (_decoder == null) return "メディアがロードされていません";
+        return $"ファイル: {CurrentPlaylistItem}\n" +
+               $"解像度: {_decoder.VideoWidth} x {_decoder.VideoHeight}\n" +
+               $"フレームレート: {_decoder.Framerate} fps\n" +
+               $"オーディオ: {_decoder.AudioSampleRate} Hz, {_decoder.AudioChannels} ch\n" +
+               $"持続時間: {TimeSpan.FromSeconds(Duration):hh\\:mm\\:ss}\n" +
+               $"総フレーム数: {MaxFrame}";
+    }
+
+    [RelayCommand]
+    public void ShowMediaInfo()
+    {
+        ShowMediaInfoAction?.Invoke();
+    }
+
+    [RelayCommand]
     public void OpenPlaylist()
     {
         ShowPlaylistWindowAction?.Invoke();
@@ -561,13 +595,42 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void PlayListNext()
     {
-        // TODO
+        AdvancePlaylist();
     }
     
     [RelayCommand]
     public void PlayListPrev()
     {
-        // TODO
+        if (Playlist.Count == 0) return;
+
+        int currentIndex = Playlist.IndexOf(CurrentPlaylistItem ?? "");
+        string? prevUrl = null;
+
+        switch (_settings.PlaybackMode)
+        {
+            case FFmPlayer.Models.PlaybackMode.Sequential:
+            case FFmPlayer.Models.PlaybackMode.Off:
+                if (currentIndex > 0)
+                {
+                    prevUrl = Playlist[currentIndex - 1];
+                }
+                else
+                {
+                    prevUrl = Playlist[Playlist.Count - 1];
+                }
+                break;
+            case FFmPlayer.Models.PlaybackMode.RepeatOne:
+                prevUrl = CurrentPlaylistItem;
+                break;
+            case FFmPlayer.Models.PlaybackMode.Random:
+                prevUrl = Playlist[new Random().Next(Playlist.Count)];
+                break;
+        }
+
+        if (!string.IsNullOrEmpty(prevUrl))
+        {
+            LoadMedia(prevUrl);
+        }
     }
 
     partial void OnVolumeChanged(double value)

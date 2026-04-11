@@ -42,6 +42,8 @@
         <Border Grid.Row="1" Background="Black">
             <Border.ContextMenu>
                 <ContextMenu>
+                    <MenuItem Header="URLを開く (Open URL)" Command="{Binding OpenUrlCommand}"/>
+                    <MenuItem Header="プロパティ (Media Info)" Command="{Binding ShowMediaInfoCommand}"/>
                     <MenuItem Header="設定 (Settings)" Command="{Binding OpenSettingsCommand}"/>
                     <MenuItem Header="プレイリスト" Command="{Binding OpenPlaylistCommand}"/>
                 </ContextMenu>

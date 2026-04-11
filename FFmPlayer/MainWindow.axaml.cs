@@ -60,6 +60,33 @@ public partial class MainWindow : Window
                         vm.AddFilesToPlaylist(paths, clearExisting: true); // Replace existing queue
                     }
                 };
+
+                vm.OpenUrlAction = async () =>
+                {
+                    var dialog = new UrlInputDialog();
+                    var result = await dialog.ShowDialog<string?>(this);
+                    if (!string.IsNullOrWhiteSpace(result))
+                    {
+                        vm.LoadMedia(result);
+                    }
+                };
+
+                vm.ToggleFullscreenAction = () =>
+                {
+                    WindowState = WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;
+                };
+
+                vm.ExitFullscreenAction = () =>
+                {
+                    WindowState = WindowState.Normal;
+                };
+
+                vm.ShowMediaInfoAction = () =>
+                {
+                    var dialog = new MediaInfoWindow();
+                    dialog.SetInfo(vm.GetMediaInfoString());
+                    dialog.ShowDialog(this);
+                };
             }
         };
 
