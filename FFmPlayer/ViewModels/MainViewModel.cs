@@ -552,7 +552,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public void RequestSeek(double seconds)
     {
-        if (_decoder == null || !IsPlaying) return;
+        if (_decoder == null) return;
         Interlocked.Exchange(ref _seekRequestTime, seconds);
     }
 

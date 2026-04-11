@@ -7,7 +7,6 @@ public class AudioPlayer : IDisposable
 {
     private WaveOutEvent? _waveOut;
     private BufferedWaveProvider? _bufferedWaveProvider;
-    private long _bytesPlayed;
     
     // NAudio may call PlaybackStopped on its own thread
     public event EventHandler<StoppedEventArgs>? PlaybackStopped;
@@ -26,7 +25,6 @@ public class AudioPlayer : IDisposable
         };
 
         _waveOut.Init(_bufferedWaveProvider);
-        _bytesPlayed = 0;
     }
 
     private void OnPlaybackStopped(object? sender, StoppedEventArgs e)
@@ -57,7 +55,6 @@ public class AudioPlayer : IDisposable
     public void ClearBuffer()
     {
         _bufferedWaveProvider?.ClearBuffer();
-        _bytesPlayed = 0; // We will track manually or reset our base
     }
 
     public void SetVolume(float volume)
