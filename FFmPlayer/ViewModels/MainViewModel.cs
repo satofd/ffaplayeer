@@ -453,7 +453,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
                 }
 
                 // FFmpegに次のフレームのデコードを行わせる
-                var type = _decoder.TryDecodeNextFrame(out double pts, out byte[] data, out int strideOrSize);
+                var type = _decoder.TryDecodeNextFrame(out double pts, out byte[] data, out int strideOrSize, targetSeekTimeAfterFlush);
 
                 if (type == FFmpegDecoder.FrameType.EndOfStream)
                 {

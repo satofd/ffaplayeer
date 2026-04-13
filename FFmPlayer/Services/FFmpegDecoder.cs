@@ -159,7 +159,7 @@ public unsafe class FFmpegDecoder : IDisposable
     /// <param name="data">変換済みのピクセルデータまたはオーディオデータが返ります</param>
     /// <param name="strideOrCount">映像の場合は1行あたりのバイト数(Stride)、音声の場合はバイト数が返ります</param>
     /// <returns>読み込まれたフレームの種類</returns>
-    public FrameType TryDecodeNextFrame(out double pts, out byte[] data, out int strideOrCount)
+    public FrameType TryDecodeNextFrame(out double pts, out byte[] data, out int strideOrCount, double dropBeforePts = -1.0)
     {
         pts = 0;
         data = Array.Empty<byte>();
@@ -185,6 +185,12 @@ public unsafe class FFmpegDecoder : IDisposable
 
                 pts = _frame->best_effort_timestamp * ffmpeg.av_q2d(VideoTimeBase);
                 
+                if (dropBeforePts >= 0 && pts < dropBeforePts)
+                {
+                    ffmpeg.av_frame_unref(_frame);
+                    return FrameType.Video;
+                }
+                
                 ffmpeg.sws_scale(_swsContext,
                     _frame->data, _frame->linesize, 0, _frame->height,
                     _dstVideoFrame->data, _dstVideoFrame->linesize);
@@ -208,6 +214,12 @@ public unsafe class FFmpegDecoder : IDisposable
                 if (ret < 0) return FrameType.Error;
 
                 pts = _frame->best_effort_timestamp * ffmpeg.av_q2d(AudioTimeBase);
+                
+                if (dropBeforePts >= 0 && pts < dropBeforePts)
+                {
+                    ffmpeg.av_frame_unref(_frame);
+                    return FrameType.Audio;
+                }
                 
                 byte*[] outData = { _dstAudioData };
                 int outSamples = 0;
