@@ -5,10 +5,26 @@
         x:Class="FFmPlayer.PlaylistWindow"
         x:DataType="vm:MainViewModel"
         Title="プレイリスト" Width="450" Height="600" Background="#1E1E1E" WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True" WindowDecorations="None"
         DragDrop.AllowDrop="True">
-    <Grid RowDefinitions="Auto,*">
-        <StackPanel Grid.Row="0" Margin="10" Spacing="10">
-            <TextBlock Text="プレイリスト" FontSize="20" FontWeight="Bold" Foreground="White" />
+    <Grid RowDefinitions="Auto, *">
+        
+        <!-- Custom Title Bar -->
+        <Border Grid.Row="0" Background="#252526" Height="30" PointerPressed="OnTitleBarPointerPressed">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <TextBlock Grid.Column="0" Text="プレイリスト" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" Margin="10,0"/>
+                <Button Grid.Column="2" Content="×" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnCloseClick">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3E3E40"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" RowDefinitions="Auto,*">
+            <StackPanel Grid.Row="0" Margin="10" Spacing="10">
             <Grid ColumnDefinitions="*,Auto">
                 <ComboBox Grid.Column="0" HorizontalAlignment="Stretch" SelectedItem="{Binding Settings.PlaybackMode}" Foreground="White" Margin="0,0,10,0">
                     <models:PlaybackMode>Sequential</models:PlaybackMode>
@@ -38,5 +54,6 @@
                 </DataTemplate>
             </ListBox.ItemTemplate>
         </ListBox>
+        </Grid>
     </Grid>
 </Window>

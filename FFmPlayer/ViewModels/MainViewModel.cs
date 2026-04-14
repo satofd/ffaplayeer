@@ -812,6 +812,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
     /// コンストラクタで初期化された設定値などに基づき、再生速度を0.1倍ずつ下げます（最低0.1倍）。
     /// </summary>
     [RelayCommand] public void DecreaseSpeed() => PlaybackSpeed = Math.Clamp(PlaybackSpeed - 0.1, 0.1, 3.0);
+    
+    [RelayCommand] public void ResetSpeed() => PlaybackSpeed = 1.0;
 
     /// <summary>
     /// プレイリストにおける次のメディア（曲や動画）へ手動でスキップします。

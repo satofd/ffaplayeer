@@ -98,7 +98,9 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="0,0,5,0">
                         <!-- Speed -->
                         <Slider Minimum="0.1" Maximum="3.0" Value="{Binding PlaybackSpeed}" Width="70" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding PlaybackSpeed, StringFormat={}{0:F2}x}" Foreground="White" VerticalAlignment="Center" Width="35" TextAlignment="Center" FontSize="12"/>
+                        <Button BorderThickness="0" Background="Transparent" Padding="0" Cursor="Hand" ToolTip.Tip="クリックで1.0xにリセット" Command="{Binding ResetSpeedCommand}">
+                            <TextBlock Text="{Binding PlaybackSpeed, StringFormat={}{0:F2}x}" Foreground="White" VerticalAlignment="Center" Width="35" TextAlignment="Center" FontSize="12"/>
+                        </Button>
 
                         <!-- Control Panel Btn -->
                         <Button Command="{Binding OpenControlPanelCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="コントロールパネル">

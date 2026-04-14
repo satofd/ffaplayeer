@@ -93,4 +93,23 @@ public partial class PlaylistWindow : Window
             }
         }
     }
+
+    /// <summary>
+    /// カスタムタイトルバーのドラッグによるウィンドウ移動処理です。
+    /// </summary>
+    private void OnTitleBarPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            BeginMoveDrag(e);
+        }
+    }
+
+    /// <summary>
+    /// タイトルバーの閉じるボタン処理。Hideと同等の処理を行います。
+    /// </summary>
+    private void OnCloseClick(object? sender, RoutedEventArgs e)
+    {
+        this.Close(); // Will be intercepted by OnClosing and Hidden instead.
+    }
 }

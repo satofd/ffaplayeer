@@ -5,10 +5,11 @@
         x:DataType="vm:MainViewModel"
         Title="コントロールパネル" Width="400" Height="150" 
         Background="#2D2D30" WindowStartupLocation="CenterOwner"
+        ExtendClientAreaToDecorationsHint="True" WindowDecorations="None"
         CanResize="False" Topmost="True">
     
     <Window.Styles>
-        <Style Selector="Button">
+        <Style Selector="Button.ControlBtn">
             <Setter Property="Background" Value="#3E3E42" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="FontSize" Value="14" />
@@ -19,28 +20,44 @@
             <Setter Property="Width" Value="60" />
             <Setter Property="Height" Value="40" />
         </Style>
-        <Style Selector="Button:pointerover /template/ ContentPresenter">
+        <Style Selector="Button.ControlBtn:pointerover /template/ ContentPresenter">
             <Setter Property="Background" Value="#55555A"/>
         </Style>
     </Window.Styles>
 
-    <Grid RowDefinitions="*,*" Margin="15">
+    <Grid RowDefinitions="Auto,*">
+        <!-- Custom Title Bar -->
+        <Border Grid.Row="0" Background="#252526" Height="30" PointerPressed="OnTitleBarPointerPressed">
+            <Grid ColumnDefinitions="Auto, *, Auto">
+                <TextBlock Grid.Column="0" Text="コントロールパネル" Foreground="White" FontWeight="Bold" FontSize="12" VerticalAlignment="Center" Margin="10,0"/>
+                <Button Grid.Column="2" Content="×" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnCloseClick">
+                    <Button.Styles>
+                        <Style Selector="Button:pointerover /template/ ContentPresenter">
+                            <Setter Property="Background" Value="#3E3E40"/>
+                        </Style>
+                    </Button.Styles>
+                </Button>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1" RowDefinitions="*,*" Margin="15">
         
         <!-- Backward row -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Button Content="-60s" Command="{Binding SeekBackward60Command}"/>
-            <Button Content="-10s" Command="{Binding SeekBackward10Command}"/>
-            <Button Content="-1s" Command="{Binding SeekBackward1Command}"/>
-            <Button Content="&lt; F" Command="{Binding StepBackwardCommand}" ToolTip.Tip="コマ戻し"/>
+            <Button Classes="ControlBtn" Content="-60s" Command="{Binding SeekBackward60Command}"/>
+            <Button Classes="ControlBtn" Content="-10s" Command="{Binding SeekBackward10Command}"/>
+            <Button Classes="ControlBtn" Content="-1s" Command="{Binding SeekBackward1Command}"/>
+            <Button Classes="ControlBtn" Content="&lt; F" Command="{Binding StepBackwardCommand}" ToolTip.Tip="コマ戻し"/>
         </StackPanel>
 
         <!-- Forward row -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="15" HorizontalAlignment="Center" VerticalAlignment="Center">
-            <Button Content="+60s" Command="{Binding SeekForward60Command}"/>
-            <Button Content="+10s" Command="{Binding SeekForward10Command}"/>
-            <Button Content="+1s" Command="{Binding SeekForward1Command}"/>
-            <Button Content="F &gt;" Command="{Binding StepForwardCommand}" ToolTip.Tip="コマ送り"/>
+            <Button Classes="ControlBtn" Content="+60s" Command="{Binding SeekForward60Command}"/>
+            <Button Classes="ControlBtn" Content="+10s" Command="{Binding SeekForward10Command}"/>
+            <Button Classes="ControlBtn" Content="+1s" Command="{Binding SeekForward1Command}"/>
+            <Button Classes="ControlBtn" Content="F &gt;" Command="{Binding StepForwardCommand}" ToolTip.Tip="コマ送り"/>
         </StackPanel>
         
+        </Grid>
     </Grid>
 </Window>

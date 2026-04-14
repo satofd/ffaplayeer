@@ -83,11 +83,11 @@ public class AppSettings
     public string ShortcutOpenUrl { get; set; } = "Ctrl+U";
     public string ShortcutShowPlaylist { get; set; } = "L";
     public string ShortcutShowMediaInfo { get; set; } = "I";
-    public string ShortcutIncreaseSpeed { get; set; } = "OemPlus";
+    public string ShortcutIncreaseSpeed { get; set; } = "C";
     public string ShortcutIncreaseSpeedAlt { get; set; } = "Add";
-    public string ShortcutDecreaseSpeed { get; set; } = "OemMinus";
+    public string ShortcutDecreaseSpeed { get; set; } = "X";
     public string ShortcutDecreaseSpeedAlt { get; set; } = "Subtract";
-    public string ShortcutResetSpeed { get; set; } = "D0";
+    public string ShortcutResetSpeed { get; set; } = "Z";
     public string ShortcutSetAbStart { get; set; } = "A";
     public string ShortcutSetAbEnd { get; set; } = "B";
     public string ShortcutCycleTimeDisplay { get; set; } = "T";
