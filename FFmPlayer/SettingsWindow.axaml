@@ -5,7 +5,8 @@
         x:Class="FFmPlayer.SettingsWindow"
         x:DataType="vm:MainViewModel"
         Title="設定" Width="700" Height="600" Background="#1E1E1E" WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True" WindowDecorations="None">
+        ExtendClientAreaToDecorationsHint="True" WindowDecorations="None"
+        Topmost="{Binding AlwaysOnTop}">
     <Grid RowDefinitions="Auto, *, Auto">
         <!-- Custom Title Bar -->
         <Border Grid.Row="0" Background="#252526" Height="30" PointerPressed="OnTitleBarPointerPressed">
@@ -43,7 +44,7 @@
 
                             <!-- Always On Top -->
                             <TextBlock Grid.Row="1" Grid.Column="0" Text="常に手前に表示 (Always On Top):" Foreground="White" VerticalAlignment="Center"/>
-                            <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding Settings.AlwaysOnTop}" Margin="0,5"/>
+                            <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding AlwaysOnTop}" Margin="0,5"/>
 
                             <!-- Time Display Mode -->
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="初期時間表示モード (Display Mode):" Foreground="White" VerticalAlignment="Center"/>

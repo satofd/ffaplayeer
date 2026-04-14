@@ -6,7 +6,7 @@
         Title="コントロールパネル" Width="400" Height="150" 
         Background="#2D2D30" WindowStartupLocation="CenterOwner"
         ExtendClientAreaToDecorationsHint="True" WindowDecorations="None"
-        CanResize="False" Topmost="True">
+        CanResize="False" Topmost="{Binding AlwaysOnTop}">
     
     <Window.Styles>
         <Style Selector="Button.ControlBtn">

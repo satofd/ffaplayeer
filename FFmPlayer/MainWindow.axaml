@@ -7,6 +7,7 @@
         Background="#1E1E1E"
         ExtendClientAreaToDecorationsHint="True"
         WindowDecorations="None"
+        Topmost="{Binding AlwaysOnTop}"
         DragDrop.AllowDrop="True">
 
     <!-- Resize Handles wrapped around the main Grid -->

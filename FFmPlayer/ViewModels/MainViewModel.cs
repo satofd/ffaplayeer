@@ -112,6 +112,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private int _currentPlaylistIndex = -1;
 
+    [ObservableProperty]
+    private bool _alwaysOnTop;
+
     public void AddFilesToPlaylist(System.Collections.Generic.IEnumerable<string> files, bool clearExisting)
     {
         if (clearExisting)
@@ -165,6 +168,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         Volume = _settings.Volume;
         IsMuted = _settings.IsMuted;
         PlaybackSpeed = _settings.PlaybackSpeed;
+        AlwaysOnTop = _settings.AlwaysOnTop;
     }
 
     [RelayCommand]
@@ -926,6 +930,11 @@ public partial class MainViewModel : ObservableObject, IDisposable
         ShowOsd($"Speed: {value:F2}x");
     }
 
+    partial void OnAlwaysOnTopChanged(bool value)
+    {
+        _settings.AlwaysOnTop = value;
+    }
+
     /// <summary>
     /// 現在の音量、ミュート状態、再生オプションなどを AppSettings クラスのプロパティへ反映し、ディスク（設定ファイル）へ保存します。
     /// </summary>
@@ -934,6 +943,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _settings.Volume = Volume;
         _settings.IsMuted = IsMuted;
         _settings.PlaybackSpeed = PlaybackSpeed;
+        _settings.AlwaysOnTop = AlwaysOnTop;
         _settingsService.Save(_settings);
     }
 
