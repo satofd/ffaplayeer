@@ -256,16 +256,27 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// 映像上でのミドルクリック。プレイリストを開閉します。
+    /// 映像上でのマウスボタン押下時の処理。ミドルクリックなどに割り当てられたアクションを実行します。
     /// </summary>
     private void OnVideoPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
+        if (DataContext is MainViewModel vm)
         {
-            if (DataContext is MainViewModel vm)
+            if (e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
             {
-                vm.OpenPlaylist();
+                vm.ExecuteVideoMouseAction(vm.Settings.MiddleClickAction);
             }
+        }
+    }
+
+    /// <summary>
+    /// 映像上でのダブルクリック時の処理。ダブルクリックに割り当てられたアクションを実行します。
+    /// </summary>
+    private void OnVideoDoubleTapped(object? sender, Avalonia.Input.TappedEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            vm.ExecuteVideoMouseAction(vm.Settings.DoubleClickAction);
         }
     }
 

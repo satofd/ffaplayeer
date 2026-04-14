@@ -37,7 +37,7 @@
             </Border>
 
             <!-- Video Area with Context Menu and Mouse wheel/click handling -->
-            <Border Grid.Row="1" Background="Black" PointerWheelChanged="OnVideoPointerWheelChanged" PointerPressed="OnVideoPointerPressed">
+            <Border Grid.Row="1" Background="Black" PointerWheelChanged="OnVideoPointerWheelChanged" PointerPressed="OnVideoPointerPressed" DoubleTapped="OnVideoDoubleTapped">
                 <Border.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="URLを開く (Open URL)" Command="{Binding OpenUrlCommand}"/>
@@ -100,6 +100,11 @@
                         <Slider Minimum="0.1" Maximum="3.0" Value="{Binding PlaybackSpeed}" Width="70" VerticalAlignment="Center"/>
                         <Button BorderThickness="0" Background="Transparent" Padding="0" Cursor="Hand" ToolTip.Tip="クリックで1.0xにリセット" Command="{Binding ResetSpeedCommand}">
                             <TextBlock Text="{Binding PlaybackSpeed, StringFormat={}{0:F2}x}" Foreground="White" VerticalAlignment="Center" Width="35" TextAlignment="Center" FontSize="12"/>
+                        </Button>
+
+                        <!-- Playlist Btn -->
+                        <Button Command="{Binding OpenPlaylistCommand}" Width="30" Height="30" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="プレイリスト">
+                            <TextBlock Text="☰" Foreground="White" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
 
                         <!-- Control Panel Btn -->

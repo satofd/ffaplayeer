@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:FFmPlayer.ViewModels"
+        xmlns:models="using:FFmPlayer.Models"
         x:Class="FFmPlayer.SettingsWindow"
         x:DataType="vm:MainViewModel"
         Title="設定" Width="700" Height="600" Background="#1E1E1E" WindowStartupLocation="CenterOwner"
@@ -35,7 +36,7 @@
                     <StackPanel Spacing="10" Margin="15">
                         <TextBlock Text="一般設定" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
                         
-                        <Grid ColumnDefinitions="250, *" RowDefinitions="Auto, Auto, Auto" Margin="10,0">
+                        <Grid ColumnDefinitions="250, *" RowDefinitions="Auto, Auto, Auto, Auto, Auto" Margin="10,0">
                             <!-- Theme -->
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="テーマ (Theme):" Foreground="White" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Settings.Theme}" Margin="0,5"/>
@@ -47,6 +48,29 @@
                             <!-- Time Display Mode -->
                             <TextBlock Grid.Row="2" Grid.Column="0" Text="初期時間表示モード (Display Mode):" Foreground="White" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Settings.TimeDisplayMode}" Margin="0,5"/>
+
+                            <!-- Mouse Setup -->
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="ダブルクリック操作:" Foreground="White" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="3" Grid.Column="1" SelectedItem="{Binding Settings.DoubleClickAction}" Margin="0,5" HorizontalAlignment="Stretch">
+                                <models:VideoMouseAction>None</models:VideoMouseAction>
+                                <models:VideoMouseAction>TogglePlaylist</models:VideoMouseAction>
+                                <models:VideoMouseAction>ToggleControlPanel</models:VideoMouseAction>
+                                <models:VideoMouseAction>ToggleSettings</models:VideoMouseAction>
+                                <models:VideoMouseAction>ToggleVideoStretch</models:VideoMouseAction>
+                                <models:VideoMouseAction>ToggleFullscreen</models:VideoMouseAction>
+                                <models:VideoMouseAction>PlayPause</models:VideoMouseAction>
+                            </ComboBox>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="中クリック操作 (ホイールクリック):" Foreground="White" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Row="4" Grid.Column="1" SelectedItem="{Binding Settings.MiddleClickAction}" Margin="0,5" HorizontalAlignment="Stretch">
+                                <models:VideoMouseAction>None</models:VideoMouseAction>
+                                <models:VideoMouseAction>TogglePlaylist</models:VideoMouseAction>
+                                <models:VideoMouseAction>ToggleControlPanel</models:VideoMouseAction>
+                                <models:VideoMouseAction>ToggleSettings</models:VideoMouseAction>
+                                <models:VideoMouseAction>ToggleVideoStretch</models:VideoMouseAction>
+                                <models:VideoMouseAction>ToggleFullscreen</models:VideoMouseAction>
+                                <models:VideoMouseAction>PlayPause</models:VideoMouseAction>
+                            </ComboBox>
                         </Grid>
                     </StackPanel>
                 </ScrollViewer>

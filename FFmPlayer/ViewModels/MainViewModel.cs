@@ -249,6 +249,34 @@ public partial class MainViewModel : ObservableObject, IDisposable
         else if (matchedShortcut == _settings.ShortcutFullscreenMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.FullScreen, Avalonia.Media.Stretch.Uniform);
     }
 
+    public void ExecuteVideoMouseAction(VideoMouseAction action)
+    {
+        switch (action)
+        {
+            case VideoMouseAction.TogglePlaylist:
+                OpenPlaylist();
+                break;
+            case VideoMouseAction.ToggleControlPanel:
+                OpenControlPanel();
+                break;
+            case VideoMouseAction.ToggleSettings:
+                ShowSettingsWindowAction?.Invoke();
+                break;
+            case VideoMouseAction.ToggleVideoStretch:
+                VideoStretch = VideoStretch == Avalonia.Media.Stretch.Uniform ? Avalonia.Media.Stretch.UniformToFill : Avalonia.Media.Stretch.Uniform;
+                break;
+            case VideoMouseAction.ToggleFullscreen:
+                ToggleFullscreenAction?.Invoke();
+                break;
+            case VideoMouseAction.PlayPause:
+                PlayPause();
+                break;
+            case VideoMouseAction.None:
+            default:
+                break;
+        }
+    }
+
     /// <summary>
     /// 現在の再生位置からコマ送り（1フレーム進む）を行います。
     /// 音声と映像の再生ストリームを一時停止状態にし、次の映像フレームのみを即時デコードしてUIへ強制描画します。
