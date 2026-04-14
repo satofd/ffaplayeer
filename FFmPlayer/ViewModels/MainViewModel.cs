@@ -158,6 +158,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public Action<double, double>? ResizeWindowToVideoSizeAction { get; set; }
     public Action<Avalonia.Controls.WindowState, Avalonia.Media.Stretch>? SetWindowModeAction { get; set; }
     public Action? ShrinkWindowToFitVideoAction { get; set; }
+    public Action? ResizeToFitMaxAction { get; set; }
     
     public AppSettings Settings => _settings;
 
@@ -244,7 +245,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         else if (matchedShortcut == _settings.ShortcutWindowSize100) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Normal, Avalonia.Media.Stretch.Uniform); ResizeWindowToVideoSizeAction?.Invoke(1.0, 1.0); ShowOsd("Size: 100%"); }
         else if (matchedShortcut == _settings.ShortcutWindowSize150) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Normal, Avalonia.Media.Stretch.Uniform); ResizeWindowToVideoSizeAction?.Invoke(1.5, 1.5); ShowOsd("Size: 150%"); }
         else if (matchedShortcut == _settings.ShortcutWindowSize200) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Normal, Avalonia.Media.Stretch.Uniform); ResizeWindowToVideoSizeAction?.Invoke(2.0, 2.0); ShowOsd("Size: 200%"); }
-        else if (matchedShortcut == _settings.ShortcutMaximizedNoMargin) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Maximized, Avalonia.Media.Stretch.Uniform); ShowOsd("Maximized (Fit)"); }
+        else if (matchedShortcut == _settings.ShortcutMaximizedNoMargin) { ResizeToFitMaxAction?.Invoke(); ShowOsd("Maximized (Fit/No Margin)"); }
         else if (matchedShortcut == _settings.ShortcutMaximizedMargin) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Maximized, Avalonia.Media.Stretch.Uniform); ShowOsd("Maximized (Keep Margin)"); }
         else if (matchedShortcut == _settings.ShortcutFitVideoNoMargin) 
         {

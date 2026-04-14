@@ -5,8 +5,7 @@
         x:Class="FFmPlayer.SettingsWindow"
         x:DataType="vm:MainViewModel"
         Title="設定" Width="700" Height="600" Background="#1E1E1E" WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True" WindowDecorations="None"
-        Topmost="{Binding AlwaysOnTop}">
+        WindowDecorations="None" Topmost="{Binding AlwaysOnTop}">
     <Grid RowDefinitions="Auto, *, Auto">
         <!-- Custom Title Bar -->
         <Border Grid.Row="0" Background="#252526" Height="30" PointerPressed="OnTitleBarPointerPressed">

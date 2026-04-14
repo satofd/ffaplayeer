@@ -5,7 +5,7 @@
         x:Class="FFmPlayer.PlaylistWindow"
         x:DataType="vm:MainViewModel"
         Title="プレイリスト" Width="450" Height="600" Background="#1E1E1E" WindowStartupLocation="CenterOwner"
-        ExtendClientAreaToDecorationsHint="True" WindowDecorations="None"
+        WindowDecorations="None"
         Topmost="{Binding AlwaysOnTop}"
         DragDrop.AllowDrop="True">
     <Grid RowDefinitions="Auto, *">

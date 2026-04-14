@@ -128,9 +128,18 @@ public partial class MainWindow : Window
                     }
                 };
 
-                vm.ShrinkWindowToFitVideoAction = () =>
+                vm.ShrinkWindowToFitVideoAction = async () =>
                 {
-                    this.WindowState = Avalonia.Controls.WindowState.Normal;
+                    if (this.WindowState != Avalonia.Controls.WindowState.Normal)
+                    {
+                        this.WindowState = Avalonia.Controls.WindowState.Normal;
+                        await System.Threading.Tasks.Task.Delay(150); 
+                    }
+                    else
+                    {
+                        await System.Threading.Tasks.Task.Delay(50);
+                    }
+
                     if (vm.VideoFrameBitmap != null)
                     {
                         var video_w = vm.VideoFrameBitmap.PixelSize.Width;
@@ -152,17 +161,61 @@ public partial class MainWindow : Window
                                 double rendered_w = video_w * minScale;
                                 double rendered_h = video_h * minScale;
 
-                                this.Width = this.Width - container_w + rendered_w;
-                                this.Height = this.Height - container_h + rendered_h;
+                                this.Width = System.Math.Max(300, this.Width - container_w + rendered_w);
+                                this.Height = System.Math.Max(150, this.Height - container_h + rendered_h);
                             }
                         }
                     }
                 };
 
-                vm.SetWindowModeAction = (state, stretch) =>
+                vm.ResizeToFitMaxAction = async () =>
                 {
-                    this.WindowState = state;
+                    if (this.WindowState != Avalonia.Controls.WindowState.Normal)
+                    {
+                        this.WindowState = Avalonia.Controls.WindowState.Normal;
+                        await System.Threading.Tasks.Task.Delay(150);
+                    }
+                    
+                    if (vm.VideoFrameBitmap != null)
+                    {
+                        var video_w = vm.VideoFrameBitmap.PixelSize.Width;
+                        var video_h = vm.VideoFrameBitmap.PixelSize.Height;
+                        if (video_w == 0 || video_h == 0) return;
+
+                        var screen = this.Screens.ScreenFromVisual(this) ?? this.Screens.Primary;
+                        if (screen != null)
+                        {
+                            var workArea = screen.WorkingArea;
+                            double scaleW = (double)workArea.Width / video_w;
+                            // UI controls approx height = 80
+                            double scaleH = (double)(workArea.Height - 80) / video_h;
+                            double minScale = System.Math.Min(scaleW, scaleH);
+
+                            if (minScale > 0)
+                            {
+                                this.Width = video_w * minScale;
+                                this.Height = (video_h * minScale) + 80;
+                                
+                                this.Position = new Avalonia.PixelPoint(
+                                    workArea.X + (workArea.Width - (int)this.Width) / 2,
+                                    workArea.Y + (workArea.Height - (int)this.Height) / 2
+                                );
+                            }
+                        }
+                    }
+                };
+
+                vm.SetWindowModeAction = async (state, stretch) =>
+                {
                     vm.VideoStretch = stretch;
+                    
+                    if (state == Avalonia.Controls.WindowState.Maximized || state == Avalonia.Controls.WindowState.FullScreen)
+                    {
+                        this.WindowState = Avalonia.Controls.WindowState.Normal;
+                        await System.Threading.Tasks.Task.Delay(50);
+                    }
+                    
+                    this.WindowState = state;
                 };
             }
         };
