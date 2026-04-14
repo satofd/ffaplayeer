@@ -83,7 +83,9 @@
                         </Button>
                         
                         <!-- Volume & Mute -->
-                        <CheckBox Content="Mute" IsChecked="{Binding IsMuted}" Foreground="White" FontSize="12" Margin="10,0,0,0"/>
+                        <ToggleButton IsChecked="{Binding IsMuted}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="10,0,0,0" ToolTip.Tip="ミュート">
+                            <Image Source="avares://FFmPlayer/Assets/btn_mute.png"/>
+                        </ToggleButton>
                         <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" Width="70" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding Volume, StringFormat={}{0:P0}}" Foreground="White" Width="35" TextAlignment="Right" VerticalAlignment="Center"/>
 
@@ -113,15 +115,15 @@
         </Grid>
 
         <!-- Resize Grips (transparent margins over the window) -->
-        <Border Width="4" HorizontalAlignment="Left" Cursor="Left_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="Left"/>
-        <Border Width="4" HorizontalAlignment="Right" Cursor="Right_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="Right"/>
-        <Border Height="4" VerticalAlignment="Top" Cursor="Top_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="Top"/>
-        <Border Height="4" VerticalAlignment="Bottom" Cursor="Bottom_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="Bottom"/>
+        <Border Width="4" HorizontalAlignment="Left" Cursor="LeftSide" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="West"/>
+        <Border Width="4" HorizontalAlignment="Right" Cursor="RightSide" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="East"/>
+        <Border Height="4" VerticalAlignment="Top" Cursor="TopSide" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="North"/>
+        <Border Height="4" VerticalAlignment="Bottom" Cursor="BottomSide" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="South"/>
         
         <!-- Corners -->
-        <Border Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Top" Cursor="TopLeft_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="TopLeft"/>
-        <Border Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top" Cursor="TopRight_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="TopRight"/>
-        <Border Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Bottom" Cursor="BottomLeft_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="BottomLeft"/>
-        <Border Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="BottomRight_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="BottomRight"/>
+        <Border Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Top" Cursor="TopLeftCorner" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="NorthWest"/>
+        <Border Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top" Cursor="TopRightCorner" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="NorthEast"/>
+        <Border Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Bottom" Cursor="BottomLeftCorner" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="SouthWest"/>
+        <Border Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="BottomRightCorner" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="SouthEast"/>
     </Grid>
 </Window>

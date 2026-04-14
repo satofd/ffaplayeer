@@ -31,6 +31,13 @@ public partial class PlaylistWindow : Window
         AddHandler(DragDrop.DropEvent, OnDrop);
     }
 
+    protected override void OnClosing(WindowClosingEventArgs e)
+    {
+        base.OnClosing(e);
+        e.Cancel = true;
+        this.Hide();
+    }
+
     /// <summary>
     /// プレイリスト画面上にメディアファイルがドロップされた際、リストへファイルを追加します。
     /// （既存のプレイリストを消去せず末尾に追加します）

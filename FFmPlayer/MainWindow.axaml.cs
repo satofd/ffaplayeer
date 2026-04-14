@@ -38,14 +38,20 @@ public partial class MainWindow : Window
                 
                 vm.ShowPlaylistWindowAction = () =>
                 {
-                    if (_playlistWindow == null || !_playlistWindow.IsVisible)
+                    if (_playlistWindow == null)
                     {
                         _playlistWindow = new PlaylistWindow { DataContext = this.DataContext };
-                        _playlistWindow.Show();
+                        _playlistWindow.Show(this);
                     }
                     else
                     {
-                        _playlistWindow.Activate();
+                        if (_playlistWindow.IsVisible) 
+                            _playlistWindow.Hide();
+                        else 
+                        {
+                            _playlistWindow.Show(this);
+                            _playlistWindow.Activate();
+                        }
                     }
                 };
 
