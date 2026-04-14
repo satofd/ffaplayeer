@@ -130,6 +130,7 @@ public partial class MainWindow : Window
 
                 vm.ShrinkWindowToFitVideoAction = () =>
                 {
+                    this.WindowState = Avalonia.Controls.WindowState.Normal;
                     if (vm.VideoFrameBitmap != null)
                     {
                         var video_w = vm.VideoFrameBitmap.PixelSize.Width;
