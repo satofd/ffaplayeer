@@ -42,7 +42,12 @@ public partial class SettingsWindow : Window
                 s.ShortcutIncreaseSpeedAlt, s.ShortcutDecreaseSpeed,
                 s.ShortcutDecreaseSpeedAlt, s.ShortcutResetSpeed,
                 s.ShortcutSetAbStart, s.ShortcutSetAbEnd,
-                s.ShortcutCycleTimeDisplay, s.ShortcutTakeScreenshot
+                s.ShortcutCycleTimeDisplay, s.ShortcutTakeScreenshot,
+                s.ShortcutWindowSize50, s.ShortcutWindowSize100,
+                s.ShortcutWindowSize150, s.ShortcutWindowSize200,
+                s.ShortcutMaximizedNoMargin, s.ShortcutMaximizedMargin,
+                s.ShortcutFitVideoNoMargin, s.ShortcutFullscreenNoMargin,
+                s.ShortcutFullscreenMargin
             };
 
             var hashSet = new HashSet<string>();

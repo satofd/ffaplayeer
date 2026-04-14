@@ -101,7 +101,7 @@
                     <StackPanel Spacing="5" Margin="15">
                         <TextBlock Text="ショートカットキー設定" FontSize="18" FontWeight="Bold" Foreground="White" Margin="0,0,0,10"/>
                         
-                        <Grid ColumnDefinitions="220, *" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto" Margin="10,0">
+                        <Grid ColumnDefinitions="220, *" RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto, Auto" Margin="10,0">
                             <!-- Playback Control -->
                             <TextBlock Grid.Row="0" Grid.Column="0" Text="再生/一時停止:" Foreground="White" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Settings.ShortcutPlayPause}" Margin="0,2"/>
@@ -186,6 +186,34 @@
 
                             <TextBlock Grid.Row="25" Grid.Column="0" Text="スクリーンショット:" Foreground="White" VerticalAlignment="Center"/>
                             <TextBox Grid.Row="25" Grid.Column="1" Text="{Binding Settings.ShortcutTakeScreenshot}" Margin="0,2"/>
+
+                            <!-- Window Size Modes -->
+                            <TextBlock Grid.Row="26" Grid.Column="0" Text="映像サイズ 50%:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="26" Grid.Column="1" Text="{Binding Settings.ShortcutWindowSize50}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="27" Grid.Column="0" Text="映像サイズ 100%:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="27" Grid.Column="1" Text="{Binding Settings.ShortcutWindowSize100}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="28" Grid.Column="0" Text="映像サイズ 150%:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="28" Grid.Column="1" Text="{Binding Settings.ShortcutWindowSize150}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="29" Grid.Column="0" Text="映像サイズ 200%:" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="29" Grid.Column="1" Text="{Binding Settings.ShortcutWindowSize200}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="30" Grid.Column="0" Text="最大化 (余白なし):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="30" Grid.Column="1" Text="{Binding Settings.ShortcutMaximizedNoMargin}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="31" Grid.Column="0" Text="最大化 (余白あり):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="31" Grid.Column="1" Text="{Binding Settings.ShortcutMaximizedMargin}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="32" Grid.Column="0" Text="映像に合わせる (余白なし):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="32" Grid.Column="1" Text="{Binding Settings.ShortcutFitVideoNoMargin}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="33" Grid.Column="0" Text="フルスクリーン (余白なし):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="33" Grid.Column="1" Text="{Binding Settings.ShortcutFullscreenNoMargin}" Margin="0,2"/>
+
+                            <TextBlock Grid.Row="34" Grid.Column="0" Text="フルスクリーン (余白あり):" Foreground="White" VerticalAlignment="Center"/>
+                            <TextBox Grid.Row="34" Grid.Column="1" Text="{Binding Settings.ShortcutFullscreenMargin}" Margin="0,2"/>
                         </Grid>
                     </StackPanel>
                 </ScrollViewer>

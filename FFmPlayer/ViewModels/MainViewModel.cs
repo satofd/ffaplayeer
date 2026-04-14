@@ -51,6 +51,10 @@ public partial class MainViewModel : ObservableObject, IDisposable
     private bool _isDraggingSlider;
 
     public bool IsStopped => !IsPlaying && !IsPaused;
+    public bool IsMediaActive => !IsStopped;
+
+    [ObservableProperty]
+    private Avalonia.Media.Stretch _videoStretch = Avalonia.Media.Stretch.Uniform;
 
     [ObservableProperty]
     private double _position;
@@ -142,11 +146,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     public Action? ShowSettingsWindowAction { get; set; }
     public Action? ShowPlaylistWindowAction { get; set; }
+    public Action? ShowControlPanelAction { get; set; }
     public Action? OpenFileAction { get; set; }
     public Action? OpenUrlAction { get; set; }
     public Action? ShowMediaInfoAction { get; set; }
     public Action? ToggleFullscreenAction { get; set; }
     public Action? ExitFullscreenAction { get; set; }
+    public Action<double, double>? ResizeWindowToVideoSizeAction { get; set; }
+    public Action<Avalonia.Controls.WindowState, Avalonia.Media.Stretch>? SetWindowModeAction { get; set; }
     
     public AppSettings Settings => _settings;
 
@@ -210,7 +217,36 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (shortcut == _settings.ShortcutCycleTimeDisplay) { CycleTimeDisplay(); return true; }
         if (shortcut == _settings.ShortcutTakeScreenshot) { TakeScreenshot(); return true; }
 
+        if (shortcut == _settings.ShortcutWindowSize50) { ApplyWindowSizeFromShortcut(_settings.ShortcutWindowSize50); return true; }
+        if (shortcut == _settings.ShortcutWindowSize100) { ApplyWindowSizeFromShortcut(_settings.ShortcutWindowSize100); return true; }
+        if (shortcut == _settings.ShortcutWindowSize150) { ApplyWindowSizeFromShortcut(_settings.ShortcutWindowSize150); return true; }
+        if (shortcut == _settings.ShortcutWindowSize200) { ApplyWindowSizeFromShortcut(_settings.ShortcutWindowSize200); return true; }
+        if (shortcut == _settings.ShortcutMaximizedNoMargin) { ApplyWindowSizeFromShortcut(_settings.ShortcutMaximizedNoMargin); return true; }
+        if (shortcut == _settings.ShortcutMaximizedMargin) { ApplyWindowSizeFromShortcut(_settings.ShortcutMaximizedMargin); return true; }
+        if (shortcut == _settings.ShortcutFitVideoNoMargin) { ApplyWindowSizeFromShortcut(_settings.ShortcutFitVideoNoMargin); return true; }
+        if (shortcut == _settings.ShortcutFullscreenNoMargin) { ApplyWindowSizeFromShortcut(_settings.ShortcutFullscreenNoMargin); return true; }
+        if (shortcut == _settings.ShortcutFullscreenMargin) { ApplyWindowSizeFromShortcut(_settings.ShortcutFullscreenMargin); return true; }
+
         return false;
+    }
+
+    private void ApplyWindowSizeFromShortcut(string matchedShortcut)
+    {
+        if (_decoder == null) return;
+        
+        if (matchedShortcut == _settings.ShortcutWindowSize50) ResizeWindowToVideoSizeAction?.Invoke(0.5, 0.5);
+        else if (matchedShortcut == _settings.ShortcutWindowSize100) ResizeWindowToVideoSizeAction?.Invoke(1.0, 1.0);
+        else if (matchedShortcut == _settings.ShortcutWindowSize150) ResizeWindowToVideoSizeAction?.Invoke(1.5, 1.5);
+        else if (matchedShortcut == _settings.ShortcutWindowSize200) ResizeWindowToVideoSizeAction?.Invoke(2.0, 2.0);
+        else if (matchedShortcut == _settings.ShortcutMaximizedNoMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Maximized, Avalonia.Media.Stretch.UniformToFill);
+        else if (matchedShortcut == _settings.ShortcutMaximizedMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Maximized, Avalonia.Media.Stretch.Uniform);
+        else if (matchedShortcut == _settings.ShortcutFitVideoNoMargin) 
+        {
+            SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Normal, Avalonia.Media.Stretch.UniformToFill);
+            ResizeWindowToVideoSizeAction?.Invoke(1.0, 1.0);
+        }
+        else if (matchedShortcut == _settings.ShortcutFullscreenNoMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.FullScreen, Avalonia.Media.Stretch.UniformToFill);
+        else if (matchedShortcut == _settings.ShortcutFullscreenMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.FullScreen, Avalonia.Media.Stretch.Uniform);
     }
 
     /// <summary>
@@ -397,6 +433,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         
         _audioPlayer.Play();
         OnPropertyChanged(nameof(IsStopped));
+        OnPropertyChanged(nameof(IsMediaActive));
     }
 
     private double _seekRequestTime = -1;
@@ -657,6 +694,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     private void UpdateTimeDisplay()
     {
+        if (IsStopped)
+        {
+            TimeDisplayText = "00:00:00 / 00:00:00";
+            return;
+        }
+
         switch (_settings.TimeDisplayMode)
         {
             case 0:
@@ -690,6 +733,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
 
     [RelayCommand] public void ShowMediaInfo() => ShowMediaInfoAction?.Invoke();
     [RelayCommand] public void OpenPlaylist() => ShowPlaylistWindowAction?.Invoke();
+    [RelayCommand] public void OpenControlPanel() => ShowControlPanelAction?.Invoke();
 
     /// <summary>
     /// 動画のシーク要求を行います。UIなどから時間（秒）を受け取り、バックグラウンドのデコードループへ通知します。
@@ -726,6 +770,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
             _audioPlayer?.Play();
         }
         OnPropertyChanged(nameof(IsStopped));
+        OnPropertyChanged(nameof(IsMediaActive));
+        UpdateTimeDisplay();
     }
 
     /// <summary>
@@ -754,6 +800,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _frameBuffer.Clear();
 
         OnPropertyChanged(nameof(IsStopped));
+        OnPropertyChanged(nameof(IsMediaActive));
+        UpdateTimeDisplay();
     }
 
     /// <summary>
@@ -776,6 +824,12 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void PlayListPrev()
     {
+        if (Position > 3.0)
+        {
+            RequestSeek(0);
+            return;
+        }
+
         if (Playlist.Count == 0) return;
 
         int currentIndex = Playlist.IndexOf(CurrentPlaylistItem ?? "");

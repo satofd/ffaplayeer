@@ -9,98 +9,119 @@
         WindowDecorations="None"
         DragDrop.AllowDrop="True">
 
-    <Grid RowDefinitions="Auto, *, Auto">
-        
-        <!-- Custom Title Bar -->
-        <Border Grid.Row="0" Background="#252526" Height="30" PointerPressed="OnTitleBarPointerPressed">
-            <Grid ColumnDefinitions="Auto, *, Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="10,0">
-                    <TextBlock Text="FFmPlayer" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
-                </StackPanel>
-                
-                <!-- Title + Playlist Left Aligned -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="10">
-                    <TextBlock Text="{Binding CurrentPlaylistItem}" Foreground="LightGray" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="500"/>
-                    <TextBlock Text="{Binding CurrentPlaylistIndex, StringFormat='{} [{0} / '}" Foreground="Gray" VerticalAlignment="Center" IsVisible="{Binding CurrentPlaylistIndex, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-                    <TextBlock Text="{Binding Playlist.Count, StringFormat='{}{0}]'}" Foreground="Gray" VerticalAlignment="Center" IsVisible="{Binding CurrentPlaylistIndex, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-                </StackPanel>
-                
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="0">
-                    <Button Content="-" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnMinimizeClick"/>
-                    <Button Content="□" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnMaximizeClick"/>
-                    <Button Content="×" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnCloseClick"/>
-                    <StackPanel.Styles>
-                        <Style Selector="Button:pointerover /template/ ContentPresenter">
-                            <Setter Property="Background" Value="#3E3E40"/>
-                        </Style>
-                    </StackPanel.Styles>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- Video Area with Context Menu -->
-        <Border Grid.Row="1" Background="Black">
-            <Border.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="URLを開く (Open URL)" Command="{Binding OpenUrlCommand}"/>
-                    <MenuItem Header="プロパティ (Media Info)" Command="{Binding ShowMediaInfoCommand}"/>
-                    <MenuItem Header="設定 (Settings)" Command="{Binding OpenSettingsCommand}"/>
-                    <MenuItem Header="プレイリスト" Command="{Binding OpenPlaylistCommand}"/>
-                </ContextMenu>
-            </Border.ContextMenu>
-            <Grid>
-                <Image x:Name="VideoImage" Stretch="Uniform" Source="{Binding VideoFrameBitmap}" />
-                <!-- OSD Message overlapping video -->
-                <TextBlock Text="{Binding OsdMessage}" Foreground="White" FontSize="24" FontWeight="Bold"
-                           HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20"
-                           IsVisible="{Binding OsdVisible}">
-                    <TextBlock.Effect>
-                        <DropShadowDirectionEffect ShadowDepth="2" BlurRadius="4" Color="Black" Opacity="0.8"/>
-                    </TextBlock.Effect>
-                </TextBlock>
-            </Grid>
-        </Border>
-
-        <!-- Controls Area -->
-        <StackPanel Grid.Row="2" Background="#2D2D30" Orientation="Vertical">
-            <!-- Seek Bar -->
-            <Slider x:Name="SeekSlider" Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position}" Margin="10,0"/>
+    <!-- Resize Handles wrapped around the main Grid -->
+    <Grid>
+        <!-- Main Layout -->
+        <Grid RowDefinitions="Auto, *, Auto" Margin="4">
             
-            <Grid ColumnDefinitions="Auto, *, Auto, Auto" Margin="5">
-                
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-                    <Button Content="-60s" Command="{Binding SeekBackward60Command}" Width="40" HorizontalContentAlignment="Center" FontSize="11"/>
-                    <Button Content="-10s" Command="{Binding SeekBackward10Command}" Width="40" HorizontalContentAlignment="Center" FontSize="11"/>
-                    <Button Content="-1s" Command="{Binding SeekBackward1Command}" Width="35" HorizontalContentAlignment="Center" FontSize="11"/>
-                    <Button Content="&lt; F" Command="{Binding StepBackwardCommand}" Width="35" HorizontalContentAlignment="Center" FontSize="11"/>
-                    
-                    <Button Content="Play" Command="{Binding PlayPauseCommand}" Margin="5,0"/>
-                    <Button Content="Stop" Command="{Binding StopCommand}" Margin="0,0,5,0"/>
-
-                    <Button Content="F &gt;" Command="{Binding StepForwardCommand}" Width="35" HorizontalContentAlignment="Center" FontSize="11"/>
-                    <Button Content="+1s" Command="{Binding SeekForward1Command}" Width="35" HorizontalContentAlignment="Center" FontSize="11"/>
-                    <Button Content="+10s" Command="{Binding SeekForward10Command}" Width="40" HorizontalContentAlignment="Center" FontSize="11"/>
-                    <Button Content="+60s" Command="{Binding SeekForward60Command}" Width="40" HorizontalContentAlignment="Center" FontSize="11"/>
-
-                    <!-- Time Display -->
-                    <StackPanel Orientation="Horizontal" Margin="10,0,5,0" VerticalAlignment="Center">
-                        <TextBlock Foreground="White" Text="{Binding TimeDisplayText}" FontSize="12"/>
-                        <TextBlock Foreground="Orange" Text=" [A-B]" FontSize="12" Margin="5,0,0,0" IsVisible="{Binding IsAbLoopActive}"/>
+            <!-- Custom Title Bar -->
+            <Border Grid.Row="0" Background="#252526" Height="30" PointerPressed="OnTitleBarPointerPressed">
+                <Grid ColumnDefinitions="Auto, *, Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="10,0">
+                        <TextBlock Text="FFmPlayer" Foreground="White" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,15,0"/>
                     </StackPanel>
-                </StackPanel>
-                
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
-                    <Button Content="-" Command="{Binding DecreaseSpeedCommand}" Width="25" HorizontalContentAlignment="Center"/>
-                    <TextBlock Text="{Binding PlaybackSpeed, StringFormat={}{0:F2}x}" Foreground="White" VerticalAlignment="Center" Width="35" TextAlignment="Center" FontSize="12"/>
-                    <Button Content="+" Command="{Binding IncreaseSpeedCommand}" Width="25" HorizontalContentAlignment="Center"/>
-                </StackPanel>
+                    
+                    <!-- Title + Playlist Left Aligned -->
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" Spacing="10" IsVisible="{Binding IsMediaActive}">
+                        <TextBlock Text="{Binding CurrentPlaylistItem}" Foreground="LightGray" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="500"/>
+                        <TextBlock Text="{Binding CurrentPlaylistIndex, StringFormat='{} [{0} / '}" Foreground="Gray" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Playlist.Count, StringFormat='{}{0}]'}" Foreground="Gray" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="0">
+                        <Button Content="-" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnMinimizeClick"/>
+                        <Button Content="□" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnMaximizeClick"/>
+                        <Button Content="×" Width="40" Background="Transparent" Foreground="White" BorderThickness="0" CornerRadius="0" HorizontalContentAlignment="Center" Click="OnCloseClick"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
 
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" Margin="15,0,5,0">
-                    <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" Width="70" />
-                    <CheckBox Content="Mute" IsChecked="{Binding IsMuted}" Foreground="White" FontSize="12"/>
-                    <Button Content="Full" Click="OnFullscreenToggleClick" Margin="5,0,0,0" FontSize="12"/>
-                </StackPanel>
-            </Grid>
-        </StackPanel>
+            <!-- Video Area with Context Menu and Mouse wheel/click handling -->
+            <Border Grid.Row="1" Background="Black" PointerWheelChanged="OnVideoPointerWheelChanged" PointerPressed="OnVideoPointerPressed">
+                <Border.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="URLを開く (Open URL)" Command="{Binding OpenUrlCommand}"/>
+                        <MenuItem Header="プロパティ (Media Info)" Command="{Binding ShowMediaInfoCommand}"/>
+                        <MenuItem Header="設定 (Settings)" Command="{Binding OpenSettingsCommand}"/>
+                        <MenuItem Header="プレイリスト" Command="{Binding OpenPlaylistCommand}"/>
+                    </ContextMenu>
+                </Border.ContextMenu>
+                <Grid>
+                    <Image x:Name="VideoImage" Stretch="{Binding VideoStretch}" Source="{Binding VideoFrameBitmap}" />
+                    <!-- OSD Message overlapping video -->
+                    <TextBlock Text="{Binding OsdMessage}" Foreground="White" FontSize="24" FontWeight="Bold"
+                               HorizontalAlignment="Left" VerticalAlignment="Top" Margin="20"
+                               IsVisible="{Binding OsdVisible}">
+                        <TextBlock.Effect>
+                            <DropShadowDirectionEffect ShadowDepth="2" BlurRadius="4" Color="Black" Opacity="0.8"/>
+                        </TextBlock.Effect>
+                    </TextBlock>
+                </Grid>
+            </Border>
+
+            <!-- Controls Area -->
+            <StackPanel Grid.Row="2" Background="#2D2D30" Orientation="Vertical">
+                <!-- Seek Bar -->
+                <Slider x:Name="SeekSlider" Minimum="0" Maximum="{Binding Duration}" Value="{Binding Position}" Margin="10,0"/>
+                
+                <Grid ColumnDefinitions="Auto, *, Auto" Margin="5">
+                    
+                    <!-- Left: Play, Stop, Prev, Next, Mute, Vol Slider, Vol Text, Position/Duration -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                        
+                        <Button Command="{Binding PlayPauseCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4">
+                            <Image Source="avares://FFmPlayer/Assets/btn_play.png"/>
+                        </Button>
+                        <Button Command="{Binding StopCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4">
+                            <Image Source="avares://FFmPlayer/Assets/btn_stop.png"/>
+                        </Button>
+                        <Button Command="{Binding PlayListPrevCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="前のプレイリスト">
+                            <Image Source="avares://FFmPlayer/Assets/btn_prev.png"/>
+                        </Button>
+                        <Button Command="{Binding PlayListNextCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="次のプレイリスト">
+                            <Image Source="avares://FFmPlayer/Assets/btn_next.png"/>
+                        </Button>
+                        
+                        <!-- Volume & Mute -->
+                        <CheckBox Content="Mute" IsChecked="{Binding IsMuted}" Foreground="White" FontSize="12" Margin="10,0,0,0"/>
+                        <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" Width="70" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Volume, StringFormat={}{0:P0}}" Foreground="White" Width="35" TextAlignment="Right" VerticalAlignment="Center"/>
+
+                        <!-- Time Display -->
+                        <TextBlock Foreground="White" Text="{Binding TimeDisplayText}" FontSize="12" Margin="15,0,5,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <!-- Right: from right to left (Speed text, Speed slider, Control panel, Settings) -->
+                    <!-- Wait, right from right to left means Settings is rightmost, ControlPanel is to its left, then speed text, then speed slider. So reading left to right inside the right panel: Speed Slider, Speed Text, Control Panel, Settings -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center" Margin="0,0,5,0">
+                        <!-- Speed -->
+                        <Slider Minimum="0.1" Maximum="3.0" Value="{Binding PlaybackSpeed}" Width="70" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding PlaybackSpeed, StringFormat={}{0:F2}x}" Foreground="White" VerticalAlignment="Center" Width="35" TextAlignment="Center" FontSize="12"/>
+
+                        <!-- Control Panel Btn -->
+                        <Button Command="{Binding OpenControlPanelCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="コントロールパネル">
+                            <Image Source="avares://FFmPlayer/Assets/btn_controls.png"/>
+                        </Button>
+                        
+                        <!-- Settings Btn -->
+                        <Button Command="{Binding OpenSettingsCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="設定">
+                            <Image Source="avares://FFmPlayer/Assets/btn_settings.png"/>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Grid>
+
+        <!-- Resize Grips (transparent margins over the window) -->
+        <Border Width="4" HorizontalAlignment="Left" Cursor="Left_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="Left"/>
+        <Border Width="4" HorizontalAlignment="Right" Cursor="Right_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="Right"/>
+        <Border Height="4" VerticalAlignment="Top" Cursor="Top_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="Top"/>
+        <Border Height="4" VerticalAlignment="Bottom" Cursor="Bottom_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="Bottom"/>
+        
+        <!-- Corners -->
+        <Border Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Top" Cursor="TopLeft_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="TopLeft"/>
+        <Border Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top" Cursor="TopRight_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="TopRight"/>
+        <Border Width="6" Height="6" HorizontalAlignment="Left" VerticalAlignment="Bottom" Cursor="BottomLeft_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="BottomLeft"/>
+        <Border Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="BottomRight_Size" Background="Transparent" PointerPressed="OnResizePointerPressed" Tag="BottomRight"/>
     </Grid>
 </Window>

@@ -92,4 +92,13 @@ public class AppSettings
     public string ShortcutSetAbEnd { get; set; } = "B";
     public string ShortcutCycleTimeDisplay { get; set; } = "T";
     public string ShortcutTakeScreenshot { get; set; } = "PrintScreen";
+    public string ShortcutWindowSize50 { get; set; } = "D1";
+    public string ShortcutWindowSize100 { get; set; } = "D2";
+    public string ShortcutWindowSize150 { get; set; } = "D3";
+    public string ShortcutWindowSize200 { get; set; } = "D4";
+    public string ShortcutMaximizedNoMargin { get; set; } = "D5";
+    public string ShortcutMaximizedMargin { get; set; } = "D6";
+    public string ShortcutFitVideoNoMargin { get; set; } = "D7";
+    public string ShortcutFullscreenNoMargin { get; set; } = "D8";
+    public string ShortcutFullscreenMargin { get; set; } = "D9";
 }

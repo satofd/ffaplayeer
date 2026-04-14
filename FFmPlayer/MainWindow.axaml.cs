@@ -12,6 +12,7 @@ public partial class MainWindow : Window
     // 各種ポップアップウィンドウのキャッシュ
     private SettingsWindow? _settingsWindow;
     private PlaylistWindow? _playlistWindow;
+    private ControlPanelWindow? _controlPanelWindow;
 
     public MainWindow()
     {
@@ -45,6 +46,24 @@ public partial class MainWindow : Window
                     else
                     {
                         _playlistWindow.Activate();
+                    }
+                };
+
+                vm.ShowControlPanelAction = () =>
+                {
+                    if (_controlPanelWindow == null || !_controlPanelWindow.IsVisible)
+                    {
+                        _controlPanelWindow = new ControlPanelWindow { DataContext = this.DataContext };
+                        // offset it relative to the main window
+                        var x = this.Position.X;
+                        var y = this.Position.Y + (int)this.Bounds.Height - 150;
+                        _controlPanelWindow.Position = new Avalonia.PixelPoint(x, y);
+                        _controlPanelWindow.Show(this);
+                    }
+                    else
+                    {
+                        if (_controlPanelWindow.IsVisible) _controlPanelWindow.Hide();
+                        else _controlPanelWindow.Show(this);
                     }
                 };
 
@@ -88,6 +107,25 @@ public partial class MainWindow : Window
                     var dialog = new MediaInfoWindow();
                     dialog.SetInfo(vm.GetMediaInfoString());
                     dialog.ShowDialog(this);
+                };
+
+                vm.ResizeWindowToVideoSizeAction = (scaleW, scaleH) =>
+                {
+                    if (vm.VideoFrameBitmap != null)
+                    {
+                        var targetWidth = vm.VideoFrameBitmap.PixelSize.Width * scaleW;
+                        var targetHeight = vm.VideoFrameBitmap.PixelSize.Height * scaleH;
+                        // Approximate chrome heights, but we have almost none. Let's just set the size
+                        this.Width = targetWidth;
+                        // Add height for the bottom controls + top bar manually
+                        this.Height = targetHeight + 30 + 50;
+                    }
+                };
+
+                vm.SetWindowModeAction = (state, stretch) =>
+                {
+                    this.WindowState = state;
+                    vm.VideoStretch = stretch;
                 };
             }
         };
@@ -189,6 +227,54 @@ public partial class MainWindow : Window
         if (DataContext is MainViewModel vm)
         {
             e.Handled = vm.ProcessShortcut(e.Key, e.KeyModifiers);
+        }
+    }
+
+    /// <summary>
+    /// 映像上のマウスホイール操作。音量を調整します。
+    /// </summary>
+    private void OnVideoPointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (DataContext is MainViewModel vm)
+        {
+            var delta = e.Delta.Y;
+            if (delta > 0)
+            {
+                vm.Volume = System.Math.Min(1.0, vm.Volume + 0.05);
+            }
+            else if (delta < 0)
+            {
+                vm.Volume = System.Math.Max(0.0, vm.Volume - 0.05);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 映像上でのミドルクリック。プレイリストを開閉します。
+    /// </summary>
+    private void OnVideoPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(this).Properties.IsMiddleButtonPressed)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.OpenPlaylist();
+            }
+        }
+    }
+
+    /// <summary>
+    /// ウィンドウ端の不可視グリップからのドラッグリサイズ開始。
+    /// </summary>
+    private void OnResizePointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is Border border && border.Tag is string edgeString && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            if (System.Enum.TryParse<WindowEdge>(edgeString, out var edge))
+            {
+                BeginResizeDrag(edge, e);
+            }
+            e.Handled = true;
         }
     }
 }
