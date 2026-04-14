@@ -102,7 +102,7 @@ public class AppSettings
     public string ShortcutFullscreenNoMargin { get; set; } = "D8";
     public string ShortcutFullscreenMargin { get; set; } = "D9";
 
-    public VideoMouseAction DoubleClickAction { get; set; } = VideoMouseAction.ToggleVideoStretch;
+    public VideoMouseAction DoubleClickAction { get; set; } = VideoMouseAction.FitWindowToVideo;
     public VideoMouseAction MiddleClickAction { get; set; } = VideoMouseAction.TogglePlaylist;
 }
 
@@ -112,7 +112,7 @@ public enum VideoMouseAction
     TogglePlaylist,
     ToggleControlPanel,
     ToggleSettings,
-    ToggleVideoStretch,
+    FitWindowToVideo,
     ToggleFullscreen,
     PlayPause
 }

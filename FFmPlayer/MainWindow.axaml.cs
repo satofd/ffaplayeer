@@ -124,7 +124,37 @@ public partial class MainWindow : Window
                         // Approximate chrome heights, but we have almost none. Let's just set the size
                         this.Width = targetWidth;
                         // Add height for the bottom controls + top bar manually
-                        this.Height = targetHeight + 30 + 50;
+                        this.Height = targetHeight + 50;
+                    }
+                };
+
+                vm.ShrinkWindowToFitVideoAction = () =>
+                {
+                    if (vm.VideoFrameBitmap != null)
+                    {
+                        var video_w = vm.VideoFrameBitmap.PixelSize.Width;
+                        var video_h = vm.VideoFrameBitmap.PixelSize.Height;
+                        if (video_w == 0 || video_h == 0) return;
+
+                        var imageControl = this.FindControl<Image>("VideoImage");
+                        if (imageControl != null)
+                        {
+                            var container_w = imageControl.Bounds.Width;
+                            var container_h = imageControl.Bounds.Height;
+                            
+                            if (container_w > 0 && container_h > 0)
+                            {
+                                double scaleW = container_w / video_w;
+                                double scaleH = container_h / video_h;
+                                double minScale = System.Math.Min(scaleW, scaleH);
+
+                                double rendered_w = video_w * minScale;
+                                double rendered_h = video_h * minScale;
+
+                                this.Width = this.Width - container_w + rendered_w;
+                                this.Height = this.Height - container_h + rendered_h;
+                            }
+                        }
                     }
                 };
 

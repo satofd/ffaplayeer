@@ -56,7 +56,7 @@
                                 <models:VideoMouseAction>TogglePlaylist</models:VideoMouseAction>
                                 <models:VideoMouseAction>ToggleControlPanel</models:VideoMouseAction>
                                 <models:VideoMouseAction>ToggleSettings</models:VideoMouseAction>
-                                <models:VideoMouseAction>ToggleVideoStretch</models:VideoMouseAction>
+                                <models:VideoMouseAction>FitWindowToVideo</models:VideoMouseAction>
                                 <models:VideoMouseAction>ToggleFullscreen</models:VideoMouseAction>
                                 <models:VideoMouseAction>PlayPause</models:VideoMouseAction>
                             </ComboBox>
@@ -67,7 +67,7 @@
                                 <models:VideoMouseAction>TogglePlaylist</models:VideoMouseAction>
                                 <models:VideoMouseAction>ToggleControlPanel</models:VideoMouseAction>
                                 <models:VideoMouseAction>ToggleSettings</models:VideoMouseAction>
-                                <models:VideoMouseAction>ToggleVideoStretch</models:VideoMouseAction>
+                                <models:VideoMouseAction>FitWindowToVideo</models:VideoMouseAction>
                                 <models:VideoMouseAction>ToggleFullscreen</models:VideoMouseAction>
                                 <models:VideoMouseAction>PlayPause</models:VideoMouseAction>
                             </ComboBox>

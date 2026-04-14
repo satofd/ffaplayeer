@@ -154,6 +154,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public Action? ExitFullscreenAction { get; set; }
     public Action<double, double>? ResizeWindowToVideoSizeAction { get; set; }
     public Action<Avalonia.Controls.WindowState, Avalonia.Media.Stretch>? SetWindowModeAction { get; set; }
+    public Action? ShrinkWindowToFitVideoAction { get; set; }
     
     public AppSettings Settings => _settings;
 
@@ -169,6 +170,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     [RelayCommand]
     public void OpenFile()
     {
+        ShowOsd("Open File");
         OpenFileAction?.Invoke();
     }
 
@@ -199,8 +201,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (shortcut == _settings.ShortcutSeekBackward60s) { SeekBackward60(); return true; }
         
         if (shortcut == _settings.ShortcutToggleMute) { IsMuted = !IsMuted; return true; }
-        if (shortcut == _settings.ShortcutToggleFullscreen) { ToggleFullscreenAction?.Invoke(); return true; }
-        if (shortcut == _settings.ShortcutExitFullscreen) { ExitFullscreenAction?.Invoke(); return true; }
+        if (shortcut == _settings.ShortcutToggleFullscreen) { ToggleFullscreenAction?.Invoke(); ShowOsd("Toggle Fullscreen"); return true; }
+        if (shortcut == _settings.ShortcutExitFullscreen) { ExitFullscreenAction?.Invoke(); ShowOsd("Exit Fullscreen"); return true; }
         if (shortcut == _settings.ShortcutOpenFile) { OpenFile(); return true; }
         if (shortcut == _settings.ShortcutOpenUrl) { OpenUrlAction?.Invoke(); return true; }
         if (shortcut == _settings.ShortcutShowPlaylist) { OpenPlaylist(); return true; }
@@ -234,19 +236,20 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         if (_decoder == null) return;
         
-        if (matchedShortcut == _settings.ShortcutWindowSize50) ResizeWindowToVideoSizeAction?.Invoke(0.5, 0.5);
-        else if (matchedShortcut == _settings.ShortcutWindowSize100) ResizeWindowToVideoSizeAction?.Invoke(1.0, 1.0);
-        else if (matchedShortcut == _settings.ShortcutWindowSize150) ResizeWindowToVideoSizeAction?.Invoke(1.5, 1.5);
-        else if (matchedShortcut == _settings.ShortcutWindowSize200) ResizeWindowToVideoSizeAction?.Invoke(2.0, 2.0);
-        else if (matchedShortcut == _settings.ShortcutMaximizedNoMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Maximized, Avalonia.Media.Stretch.UniformToFill);
-        else if (matchedShortcut == _settings.ShortcutMaximizedMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Maximized, Avalonia.Media.Stretch.Uniform);
+        if (matchedShortcut == _settings.ShortcutWindowSize50) { ResizeWindowToVideoSizeAction?.Invoke(0.5, 0.5); ShowOsd("Size: 50%"); }
+        else if (matchedShortcut == _settings.ShortcutWindowSize100) { ResizeWindowToVideoSizeAction?.Invoke(1.0, 1.0); ShowOsd("Size: 100%"); }
+        else if (matchedShortcut == _settings.ShortcutWindowSize150) { ResizeWindowToVideoSizeAction?.Invoke(1.5, 1.5); ShowOsd("Size: 150%"); }
+        else if (matchedShortcut == _settings.ShortcutWindowSize200) { ResizeWindowToVideoSizeAction?.Invoke(2.0, 2.0); ShowOsd("Size: 200%"); }
+        else if (matchedShortcut == _settings.ShortcutMaximizedNoMargin) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Maximized, Avalonia.Media.Stretch.UniformToFill); ShowOsd("Maximized (No Margin)"); }
+        else if (matchedShortcut == _settings.ShortcutMaximizedMargin) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Maximized, Avalonia.Media.Stretch.Uniform); ShowOsd("Maximized (Keep Margin)"); }
         else if (matchedShortcut == _settings.ShortcutFitVideoNoMargin) 
         {
-            SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Normal, Avalonia.Media.Stretch.UniformToFill);
-            ResizeWindowToVideoSizeAction?.Invoke(1.0, 1.0);
+            SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.Normal, Avalonia.Media.Stretch.Uniform);
+            ShrinkWindowToFitVideoAction?.Invoke();
+            ShowOsd("Fit Video (No Margin)");
         }
-        else if (matchedShortcut == _settings.ShortcutFullscreenNoMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.FullScreen, Avalonia.Media.Stretch.UniformToFill);
-        else if (matchedShortcut == _settings.ShortcutFullscreenMargin) SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.FullScreen, Avalonia.Media.Stretch.Uniform);
+        else if (matchedShortcut == _settings.ShortcutFullscreenNoMargin) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.FullScreen, Avalonia.Media.Stretch.UniformToFill); ShowOsd("Fullscreen (No Margin)"); }
+        else if (matchedShortcut == _settings.ShortcutFullscreenMargin) { SetWindowModeAction?.Invoke(Avalonia.Controls.WindowState.FullScreen, Avalonia.Media.Stretch.Uniform); ShowOsd("Fullscreen (Keep Margin)"); }
     }
 
     public void ExecuteVideoMouseAction(VideoMouseAction action)
@@ -262,14 +265,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
             case VideoMouseAction.ToggleSettings:
                 ShowSettingsWindowAction?.Invoke();
                 break;
-            case VideoMouseAction.ToggleVideoStretch:
-                VideoStretch = VideoStretch == Avalonia.Media.Stretch.Uniform ? Avalonia.Media.Stretch.UniformToFill : Avalonia.Media.Stretch.Uniform;
+            case VideoMouseAction.FitWindowToVideo:
+                ShrinkWindowToFitVideoAction?.Invoke();
+                // Ensure Stretch is Uniform so it doesn't crop
+                VideoStretch = Avalonia.Media.Stretch.Uniform;
+                ShowOsd("Fit Window to Video");
                 break;
             case VideoMouseAction.ToggleFullscreen:
                 ToggleFullscreenAction?.Invoke();
+                ShowOsd("Toggle Fullscreen");
                 break;
             case VideoMouseAction.PlayPause:
-                PlayPause();
+                PlayPause(); // PlayPause already has ShowOsd
                 break;
             case VideoMouseAction.None:
             default:
@@ -295,6 +302,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             {
                 Position = frame.Pts;
                 UpdateVideoBitmap(frame);
+                ShowOsd("Step Forward");
             }
         }
     }
@@ -351,6 +359,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         {
             Position = cachedFrame.Pts;
             UpdateVideoBitmap(cachedFrame);
+            ShowOsd("Step Backward");
         }
         else
         {
@@ -358,6 +367,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
             double seekTime = Math.Max(0, targetPts - _settings.StepScanWindowBackwardSeconds);
             _backfillTargetPts = targetPts;
             RequestSeek(seekTime); // DecodeLoop will rapidly decode up to targetPts
+            ShowOsd("Step Backward");
         }
     }
 
@@ -400,6 +410,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (!string.IsNullOrEmpty(nextUrl))
         {
             LoadMedia(nextUrl);
+            ShowOsd($"Next: {System.IO.Path.GetFileName(nextUrl)}");
         }
     }
 
@@ -745,8 +756,8 @@ public partial class MainViewModel : ObservableObject, IDisposable
         }
     }
 
-    [RelayCommand] public void OpenSettings() => ShowSettingsWindowAction?.Invoke();
-    [RelayCommand] public void OpenUrl() => OpenUrlAction?.Invoke();
+    [RelayCommand] public void OpenSettings() { ShowOsd("Settings"); ShowSettingsWindowAction?.Invoke(); }
+    [RelayCommand] public void OpenUrl() { ShowOsd("Open URL"); OpenUrlAction?.Invoke(); }
 
     public string GetMediaInfoString()
     {
@@ -759,9 +770,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
                $"総フレーム数: {MaxFrame}";
     }
 
-    [RelayCommand] public void ShowMediaInfo() => ShowMediaInfoAction?.Invoke();
-    [RelayCommand] public void OpenPlaylist() => ShowPlaylistWindowAction?.Invoke();
-    [RelayCommand] public void OpenControlPanel() => ShowControlPanelAction?.Invoke();
+    [RelayCommand] public void ShowMediaInfo() { ShowOsd("Media Info"); ShowMediaInfoAction?.Invoke(); }
+    [RelayCommand] public void OpenPlaylist() { ShowOsd("Playlist"); ShowPlaylistWindowAction?.Invoke(); }
+    [RelayCommand] public void OpenControlPanel() { ShowOsd("Control Panel"); ShowControlPanelAction?.Invoke(); }
 
     /// <summary>
     /// 動画のシーク要求を行います。UIなどから時間（秒）を受け取り、バックグラウンドのデコードループへ通知します。
@@ -770,7 +781,9 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public void RequestSeek(double seconds)
     {
         if (_decoder == null) return;
-        Interlocked.Exchange(ref _seekRequestTime, seconds);
+        double clamped = Math.Clamp(seconds, 0, Duration);
+        Interlocked.Exchange(ref _seekRequestTime, clamped);
+        ShowOsd($"Seek: {TimeSpan.FromSeconds(clamped):hh\\:mm\\:ss}");
     }
 
     /// <summary>
@@ -782,6 +795,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (_decoder == null && !string.IsNullOrEmpty(CurrentPlaylistItem))
         {
             LoadMedia(CurrentPlaylistItem);
+            ShowOsd("Play");
             return;
         }
 
@@ -790,12 +804,14 @@ public partial class MainViewModel : ObservableObject, IDisposable
             IsPlaying = false;
             IsPaused = true;
             _audioPlayer?.Pause();
+            ShowOsd("Pause");
         }
         else
         {
             IsPlaying = true;
             IsPaused = false;
             _audioPlayer?.Play();
+            ShowOsd("Play");
         }
         OnPropertyChanged(nameof(IsStopped));
         OnPropertyChanged(nameof(IsMediaActive));
@@ -830,6 +846,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(IsStopped));
         OnPropertyChanged(nameof(IsMediaActive));
         UpdateTimeDisplay();
+        ShowOsd("Stop");
     }
 
     /// <summary>
@@ -895,11 +912,18 @@ public partial class MainViewModel : ObservableObject, IDisposable
     partial void OnVolumeChanged(double value)
     {
         if (!IsMuted) _audioPlayer?.SetVolume((float)value);
+        ShowOsd($"Volume: {value:P0}");
     }
 
     partial void OnIsMutedChanged(bool value)
     {
         _audioPlayer?.SetVolume(value ? 0 : (float)Volume);
+        ShowOsd(value ? "Muted" : "Unmuted");
+    }
+
+    partial void OnPlaybackSpeedChanged(double value)
+    {
+        ShowOsd($"Speed: {value:F2}x");
     }
 
     /// <summary>
