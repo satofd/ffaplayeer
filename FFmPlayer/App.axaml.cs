@@ -41,6 +41,8 @@ public partial class App : Application
                 DataContext = _mainViewModel
             };
 
+            desktop.ShutdownMode = Avalonia.Controls.ShutdownMode.OnMainWindowClose;
+
             desktop.Exit += (s, e) =>
             {
                 _mainViewModel.SaveSettings();
