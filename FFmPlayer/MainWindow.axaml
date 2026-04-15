@@ -9,6 +9,36 @@
         Topmost="{Binding AlwaysOnTop}"
         DragDrop.AllowDrop="True">
 
+    <Window.Styles>
+        <!-- Icon Buttons Style -->
+        <Style Selector="Button.IconBtn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="Button.IconBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#33FFFFFF"/>
+        </Style>
+        <Style Selector="Button.IconBtn:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#55FFFFFF"/>
+        </Style>
+
+        <Style Selector="ToggleButton.IconBtn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <Style Selector="ToggleButton.IconBtn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#33FFFFFF"/>
+        </Style>
+        <Style Selector="ToggleButton.IconBtn:checked /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#22FFFFFF"/>
+        </Style>
+        <Style Selector="ToggleButton.IconBtn:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#44FFFFFF"/>
+        </Style>
+    </Window.Styles>
+
     <!-- Resize Handles wrapped around the main Grid -->
     <Grid>
         <!-- Main Layout -->
@@ -69,22 +99,38 @@
                     <!-- Left: Play, Stop, Prev, Next, Mute, Vol Slider, Vol Text, Position/Duration -->
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
                         
-                        <Button Command="{Binding PlayPauseCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4">
-                            <Image Source="avares://FFmPlayer/Assets/btn_play.png"/>
+                        <Button Classes="IconBtn" Command="{Binding PlayPauseCommand}" Width="30" Height="30" Padding="5">
+                            <Viewbox Stretch="Uniform" Margin="2,0,0,0">
+                                <Path Data="M 0 0 L 12 7 L 0 14 Z" Fill="White"/>
+                            </Viewbox>
                         </Button>
-                        <Button Command="{Binding StopCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4">
-                            <Image Source="avares://FFmPlayer/Assets/btn_stop.png"/>
+                        <Button Classes="IconBtn" Command="{Binding StopCommand}" Width="30" Height="30" Padding="5">
+                            <Viewbox Stretch="Uniform" Margin="2">
+                                <Path Data="M 0 0 H 12 V 12 H 0 Z" Fill="White"/>
+                            </Viewbox>
                         </Button>
-                        <Button Command="{Binding PlayListPrevCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="前のプレイリスト">
-                            <Image Source="avares://FFmPlayer/Assets/btn_prev.png"/>
+                        <Button Classes="IconBtn" Command="{Binding PlayListPrevCommand}" Width="30" Height="30" Padding="5" ToolTip.Tip="前のプレイリスト">
+                            <Viewbox Stretch="Uniform">
+                                <Path Data="M 12 0 L 2 7 L 12 14 Z M 0 0 H 2 V 14 H 0 Z" Fill="White"/>
+                            </Viewbox>
                         </Button>
-                        <Button Command="{Binding PlayListNextCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="次のプレイリスト">
-                            <Image Source="avares://FFmPlayer/Assets/btn_next.png"/>
+                        <Button Classes="IconBtn" Command="{Binding PlayListNextCommand}" Width="30" Height="30" Padding="5" ToolTip.Tip="次のプレイリスト">
+                            <Viewbox Stretch="Uniform">
+                                <Path Data="M 0 0 L 10 7 L 0 14 Z M 10 0 H 12 V 14 H 10 Z" Fill="White"/>
+                            </Viewbox>
                         </Button>
                         
                         <!-- Volume & Mute -->
-                        <ToggleButton IsChecked="{Binding IsMuted}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" Margin="10,0,0,0" ToolTip.Tip="ミュート">
-                            <Image Source="avares://FFmPlayer/Assets/btn_mute.png"/>
+                        <ToggleButton Classes="IconBtn" IsChecked="{Binding IsMuted}" Width="30" Height="30" Padding="5" Margin="10,0,0,0" ToolTip.Tip="ミュート">
+                            <Grid>
+                                <Viewbox Stretch="Uniform">
+                                    <Path Data="M 0 4 L 4 4 L 9 0 L 9 14 L 4 10 L 0 10 Z" Fill="White"/>
+                                </Viewbox>
+                                <!-- X mark overlay -->
+                                <Viewbox Stretch="Uniform" IsVisible="{Binding IsMuted}" Margin="2">
+                                    <Path Data="M 12 2 L 10 0 L 6 4 L 2 0 L 0 2 L 4 6 L 0 10 L 2 12 L 6 8 L 10 12 L 12 10 L 8 6 Z" Fill="#FF4444"/>
+                                </Viewbox>
+                            </Grid>
                         </ToggleButton>
                         <Slider Minimum="0" Maximum="1" Value="{Binding Volume}" Width="70" VerticalAlignment="Center"/>
                         <TextBlock Text="{Binding Volume, StringFormat={}{0:P0}}" Foreground="White" Width="35" TextAlignment="Right" VerticalAlignment="Center"/>
@@ -103,18 +149,20 @@
                         </Button>
 
                         <!-- Playlist Btn -->
-                        <Button Command="{Binding OpenPlaylistCommand}" Width="30" Height="30" Padding="0" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="プレイリスト">
+                        <Button Classes="IconBtn" Command="{Binding OpenPlaylistCommand}" Width="30" Height="30" Padding="0" ToolTip.Tip="プレイリスト">
                             <TextBlock Text="☰" Foreground="White" FontSize="20" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
 
                         <!-- Control Panel Btn -->
-                        <Button Command="{Binding OpenControlPanelCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="コントロールパネル">
-                            <Image Source="avares://FFmPlayer/Assets/btn_controls.png"/>
+                        <Button Classes="IconBtn" Command="{Binding OpenControlPanelCommand}" Width="30" Height="30" Padding="5" ToolTip.Tip="コントロールパネル">
+                            <Viewbox Stretch="Uniform">
+                                <Path Data="M 0 3 H 14 V 5 H 0 Z M 3 1 H 6 V 7 H 3 Z M 0 9 H 14 V 11 H 0 Z M 8 7 H 11 V 13 H 8 Z" Fill="White"/>
+                            </Viewbox>
                         </Button>
                         
                         <!-- Settings Btn -->
-                        <Button Command="{Binding OpenSettingsCommand}" Width="30" Height="30" Padding="5" Background="Transparent" BorderThickness="0" CornerRadius="4" ToolTip.Tip="設定">
-                            <Image Source="avares://FFmPlayer/Assets/btn_settings.png"/>
+                        <Button Classes="IconBtn" Command="{Binding OpenSettingsCommand}" Width="30" Height="30" Padding="0" ToolTip.Tip="設定">
+                            <TextBlock Text="⚙" Foreground="White" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Button>
                     </StackPanel>
                 </Grid>

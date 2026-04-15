@@ -12,5 +12,5 @@ if %ERRORLEVEL% equ 0 (
     echo Build complete! Output placed in: FFmPlayer\publish_output
 ) else (
     echo Build failed!
+    pause
 )
-pause
