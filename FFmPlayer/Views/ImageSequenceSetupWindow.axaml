@@ -1,0 +1,42 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:FFmPlayer.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="200"
+        x:Class="FFmPlayer.Views.ImageSequenceSetupWindow"
+        x:DataType="vm:ImageSequenceSetupViewModel"
+        Title="Open Image Sequence"
+        Width="450" Height="220"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="{DynamicResource WindowBackgroundColor}"
+        Foreground="{DynamicResource TextColor}">
+
+    <Grid Margin="20" RowDefinitions="Auto,20,Auto,*,Auto">
+        
+        <!-- Folder -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,10,Auto">
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="Folder Path:" Margin="0,0,0,5" FontWeight="SemiBold"/>
+                <TextBox Text="{Binding FolderPath}" Watermark="Select image directory"/>
+            </StackPanel>
+            <Button Grid.Column="2" Content="Browse" Command="{Binding BrowseCommand}" VerticalAlignment="Bottom" Height="32"/>
+        </Grid>
+        
+        <!-- FPS -->
+        <StackPanel Grid.Row="2">
+            <TextBlock Text="Framerate (FPS):" Margin="0,0,0,5" FontWeight="SemiBold"/>
+            <TextBox Text="{Binding SelectedFpsString}" Width="80" HorizontalAlignment="Left" Watermark="e.g. 30"/>
+            <TextBlock Text="(Common values: 24, 30, 60)" FontSize="11" Margin="0,5,0,0" Opacity="0.7"/>
+        </StackPanel>
+        
+        <!-- Buttons -->
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10">
+            <Button Content="Cancel" Command="{Binding CancelCommand}" Width="80" HorizontalContentAlignment="Center"/>
+            <Button Content="Play" Command="{Binding ConfirmCommand}" Width="80" HorizontalContentAlignment="Center"
+                    Classes="accent" Background="#007ACC" Foreground="White"/>
+        </StackPanel>
+        
+    </Grid>
+</Window>

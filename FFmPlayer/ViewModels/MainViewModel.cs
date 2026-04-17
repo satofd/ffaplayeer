@@ -12,6 +12,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FFmPlayer.Models;
 using FFmPlayer.Services;
+using System.IO;
+using System.Linq;
 
 namespace FFmPlayer.ViewModels;
 
@@ -152,6 +154,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
     public Action? ShowControlPanelAction { get; set; }
     public Action? OpenFileAction { get; set; }
     public Action? OpenUrlAction { get; set; }
+    public Func<Task<(bool IsConfirmed, string FolderPath, double Fps)>>? RequestImageSequenceSetupAsync { get; set; }
     public Action? ShowMediaInfoAction { get; set; }
     public Action? ToggleFullscreenAction { get; set; }
     public Action? ExitFullscreenAction { get; set; }
@@ -177,6 +180,62 @@ public partial class MainViewModel : ObservableObject, IDisposable
     {
         ShowOsd("Open File");
         OpenFileAction?.Invoke();
+    }
+
+    [DllImport("shlwapi.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    private static extern int StrCmpLogicalW(string psz1, string psz2);
+
+    [RelayCommand]
+    public async Task OpenImageSequence()
+    {
+        ShowOsd("Open Image Sequence");
+        if (RequestImageSequenceSetupAsync != null)
+        {
+            var result = await RequestImageSequenceSetupAsync();
+            if (result.IsConfirmed && !string.IsNullOrWhiteSpace(result.FolderPath) && Directory.Exists(result.FolderPath))
+            {
+                var files = Directory.GetFiles(result.FolderPath)
+                                     .Where(f => f.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                                                 f.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                                                 f.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                                                 f.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase))
+                                     .ToArray();
+                                     
+                if (files.Length == 0)
+                {
+                    ShowOsd("No images found in folder");
+                    return;
+                }
+
+                if (OperatingSystem.IsWindows())
+                {
+                    Array.Sort(files, (a, b) => StrCmpLogicalW(a, b));
+                }
+                else
+                {
+                    Array.Sort(files);
+                }
+
+                double duration = 1.0 / result.Fps;
+                string tempFile = Path.Combine(Path.GetTempPath(), $"ffconcat_fps{result.Fps}_{Guid.NewGuid():N}.txt");
+                
+                using (var writer = new StreamWriter(tempFile, false))
+                {
+                    writer.WriteLine("ffconcat version 1.0");
+                    foreach (var file in files)
+                    {
+                        string safePath = file.Replace("'", @"\'" ); // simple escape
+                        writer.WriteLine($"file '{safePath}'");
+                        writer.WriteLine($"duration {duration.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+                    }
+                    // Requires the last file to be repeated without duration or with regular properties
+                    string lastSafePath = files.Last().Replace("'", @"\'");
+                    writer.WriteLine($"file '{lastSafePath}'");
+                }
+
+                LoadMedia(tempFile);
+            }
+        }
     }
 
     /// <summary>
@@ -209,6 +268,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         if (shortcut == _settings.ShortcutToggleFullscreen) { ToggleFullscreenAction?.Invoke(); ShowOsd("Toggle Fullscreen"); return true; }
         if (shortcut == _settings.ShortcutExitFullscreen) { ExitFullscreenAction?.Invoke(); ShowOsd("Exit Fullscreen"); return true; }
         if (shortcut == _settings.ShortcutOpenFile) { OpenFile(); return true; }
+        if (shortcut == _settings.ShortcutOpenImageSequence) { _ = OpenImageSequence(); return true; }
         if (shortcut == _settings.ShortcutOpenUrl) { OpenUrlAction?.Invoke(); return true; }
         if (shortcut == _settings.ShortcutShowPlaylist) { OpenPlaylist(); return true; }
         if (shortcut == _settings.ShortcutShowMediaInfo) { ShowMediaInfoAction?.Invoke(); return true; }

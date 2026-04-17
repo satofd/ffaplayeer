@@ -80,6 +80,7 @@ public class AppSettings
     public string ShortcutToggleFullscreen { get; set; } = "F";
     public string ShortcutExitFullscreen { get; set; } = "Escape";
     public string ShortcutOpenFile { get; set; } = "Ctrl+O";
+    public string ShortcutOpenImageSequence { get; set; } = "Ctrl+Shift+O";
     public string ShortcutOpenUrl { get; set; } = "Ctrl+U";
     public string ShortcutShowPlaylist { get; set; } = "L";
     public string ShortcutShowMediaInfo { get; set; } = "I";

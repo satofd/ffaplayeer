@@ -88,6 +88,19 @@ public partial class MainWindow : Window
                     }
                 };
 
+                vm.RequestImageSequenceSetupAsync = async () =>
+                {
+                    var dialogVm = new FFmPlayer.ViewModels.ImageSequenceSetupViewModel();
+                    var dialog = new FFmPlayer.Views.ImageSequenceSetupWindow { DataContext = dialogVm };
+                    await dialog.ShowDialog(this);
+                    
+                    if (dialogVm.IsConfirmed && double.TryParse(dialogVm.SelectedFpsString, out double fps))
+                    {
+                        return (true, dialogVm.FolderPath, fps);
+                    }
+                    return (false, string.Empty, 30.0);
+                };
+
                 vm.OpenUrlAction = async () =>
                 {
                     var dialog = new UrlInputDialog();

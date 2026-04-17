@@ -57,11 +57,20 @@ public unsafe class FFmpegDecoder : IDisposable
             _packet = ffmpeg.av_packet_alloc();
             
             var pFormatContext = ffmpeg.avformat_alloc_context();
-            if (ffmpeg.avformat_open_input(&pFormatContext, url, null, null) != 0)
+            
+            AVDictionary* options = null;
+            if (url.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) && url.Contains("ffconcat"))
             {
+                ffmpeg.av_dict_set(&options, "safe", "0", 0);
+            }
+
+            if (ffmpeg.avformat_open_input(&pFormatContext, url, null, &options) != 0)
+            {
+                if (options != null) ffmpeg.av_dict_free(&options);
                 Logger.Error($"Cannot open: {url}");
                 return false;
             }
+            if (options != null) ffmpeg.av_dict_free(&options);
             _formatContext = pFormatContext;
 
             if (ffmpeg.avformat_find_stream_info(_formatContext, null) < 0)
@@ -86,6 +95,18 @@ public unsafe class FFmpegDecoder : IDisposable
                 VideoWidth = _videoCodecContext->width;
                 VideoHeight = _videoCodecContext->height;
                 Framerate = ffmpeg.av_q2d(videoStream->avg_frame_rate);
+                if (double.IsNaN(Framerate) || Framerate <= 0)
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(url, @"fps(\d+(?:\.\d+)?)");
+                    if (match.Success && double.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsedFps))
+                    {
+                        Framerate = parsedFps;
+                    }
+                    else
+                    {
+                        Framerate = 30.0;
+                    }
+                }
                 
                 _swsContext = ffmpeg.sws_getContext(
                     VideoWidth, VideoHeight, _videoCodecContext->pix_fmt,

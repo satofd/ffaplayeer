@@ -70,6 +70,8 @@
             <Border Grid.Row="1" Background="Black" PointerWheelChanged="OnVideoPointerWheelChanged" PointerPressed="OnVideoPointerPressed" DoubleTapped="OnVideoDoubleTapped">
                 <Border.ContextMenu>
                     <ContextMenu>
+                        <MenuItem Header="ファイルを開く (Open File)" Command="{Binding OpenFileCommand}"/>
+                        <MenuItem Header="連番画像を開く (Open Image Sequence)" Command="{Binding OpenImageSequenceCommand}"/>
                         <MenuItem Header="URLを開く (Open URL)" Command="{Binding OpenUrlCommand}"/>
                         <MenuItem Header="プロパティ (Media Info)" Command="{Binding ShowMediaInfoCommand}"/>
                         <MenuItem Header="設定 (Settings)" Command="{Binding OpenSettingsCommand}"/>
