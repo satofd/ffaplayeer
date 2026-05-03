@@ -31,7 +31,7 @@ FFmPlayer is a media player built with .NET and Avalonia UI, utilizing FFmpeg.Au
 
 ### 必要な環境
 - .NET SDK
-- Windows OS (音声出力に NAudio の WaveOutEvent に依存しているため)
+- Windows OS / macOS (macOS環境ではAvalonia標準ファイルピッカーのセグメンテーションフォールトを回避するため、`osascript` を用いたファイル選択を実装しています)
 - 実行環境に応じたFFmpegバイナリ (`ffmpeg` フォルダ下などに配置)
 
 ### 手順

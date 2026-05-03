@@ -1,6 +1,6 @@
 # FFmPlayer 仕様書 (実装準拠)
 
-最終更新: 2026-04-11
+最終更新: 2026-05-04
 対象: 現行リポジトリ実装 (Avalonia + FFmpeg.AutoGen + NAudio)
 
 ## 1. 目的とスコープ
@@ -201,6 +201,8 @@
 - 項目型: `PlaylistItem`
 - 追加:
   - ファイルダイアログ
+    - Windows/Linux等: Avalonia の `StorageProvider` を使用
+    - macOS: 標準ダイアログ呼び出し時のセグメンテーションフォールトを回避するため、`osascript` コマンドで AppleScript ダイアログを使用
   - URL 入力
   - ドラッグ&ドロップ
 - 重複追加防止:
@@ -321,6 +323,8 @@ README に未記載または薄いが実装済みの主項目:
 2. シークバーのドラッグ操作
    - ドラッグ中はプレビューのみ
    - 確定 seek は PointerReleased 時に 1 回だけ実行する
+3. macOS 環境におけるファイル選択
+   - Avalonia 標準のファイルピッカーを利用するとセグメンテーションフォールトが発生するため、`System.OperatingSystem.IsMacOS()` の場合は `osascript` で外部プロセスとしてダイアログを呼び出す
 
 ## 16. 再実装時の最小検証項目
 
