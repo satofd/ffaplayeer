@@ -19,7 +19,7 @@
         <Grid Grid.Row="0" ColumnDefinitions="*,10,Auto">
             <StackPanel Grid.Column="0">
                 <TextBlock Text="Folder Path:" Margin="0,0,0,5" FontWeight="SemiBold"/>
-                <TextBox Text="{Binding FolderPath}" Watermark="Select image directory"/>
+                <TextBox Text="{Binding FolderPath}" PlaceholderText="Select image directory"/>
             </StackPanel>
             <Button Grid.Column="2" Content="Browse" Command="{Binding BrowseCommand}" VerticalAlignment="Bottom" Height="32"/>
         </Grid>
@@ -27,7 +27,7 @@
         <!-- FPS -->
         <StackPanel Grid.Row="2">
             <TextBlock Text="Framerate (FPS):" Margin="0,0,0,5" FontWeight="SemiBold"/>
-            <TextBox Text="{Binding SelectedFpsString}" Width="80" HorizontalAlignment="Left" Watermark="e.g. 30"/>
+            <TextBox Text="{Binding SelectedFpsString}" Width="80" HorizontalAlignment="Left" PlaceholderText="e.g. 30"/>
             <TextBlock Text="(Common values: 24, 30, 60)" FontSize="11" Margin="0,5,0,0" Opacity="0.7"/>
         </StackPanel>
         
