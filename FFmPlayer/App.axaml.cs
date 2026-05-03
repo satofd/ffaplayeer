@@ -20,7 +20,26 @@ public partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
-        ffmpeg.RootPath = AppContext.BaseDirectory;
+
+        if (OperatingSystem.IsMacOS())
+        {
+            if (System.IO.Directory.Exists("/opt/homebrew/lib"))
+            {
+                ffmpeg.RootPath = "/opt/homebrew/lib";
+            }
+            else if (System.IO.Directory.Exists("/usr/local/lib"))
+            {
+                ffmpeg.RootPath = "/usr/local/lib";
+            }
+            else
+            {
+                ffmpeg.RootPath = AppContext.BaseDirectory;
+            }
+        }
+        else
+        {
+            ffmpeg.RootPath = AppContext.BaseDirectory;
+        }
     }
 
     /// <summary>

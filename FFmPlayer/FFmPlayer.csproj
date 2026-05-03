@@ -1,9 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType Condition="$([MSBuild]::IsOSPlatform('Windows'))">WinExe</OutputType>
+    <OutputType Condition="!$([MSBuild]::IsOSPlatform('Windows'))">Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="$([MSBuild]::IsOSPlatform('Windows'))">app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>NU1903</NoWarn>
@@ -22,9 +23,10 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="FFmpeg.AutoGen" Version="8.0.0.1" />
     <PackageReference Include="NAudio" Version="2.3.0" />
+    <PackageReference Include="SDL2-CS.NetCore" Version="2.0.8" />
   </ItemGroup>
 
-  <Target Name="CopyFFmpegLibs" AfterTargets="Build">
+  <Target Name="CopyFFmpegLibs" AfterTargets="Build" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <ItemGroup>
       <FFmpegLibs Include="..\ffmpeg\*.dll" />
     </ItemGroup>
