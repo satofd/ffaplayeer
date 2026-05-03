@@ -535,7 +535,7 @@ public partial class MainViewModel : ObservableObject, IDisposable
         _decodeTask = Task.Run(() => DecodeLoopAsync(_decodeCts.Token));
         _renderTask = Task.Run(() => VideoRenderLoopAsync(_decodeCts.Token));
         
-        _audioPlayer.Play();
+        _audioPlayer?.Play();
         OnPropertyChanged(nameof(IsStopped));
         OnPropertyChanged(nameof(IsMediaActive));
     }

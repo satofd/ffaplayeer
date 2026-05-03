@@ -26,15 +26,31 @@ public partial class App : Application
             if (System.IO.Directory.Exists("/opt/homebrew/lib"))
             {
                 ffmpeg.RootPath = "/opt/homebrew/lib";
+                System.Console.WriteLine($"ffmpeg.RootPath:homebrew: {ffmpeg.RootPath}");
+
             }
             else if (System.IO.Directory.Exists("/usr/local/lib"))
             {
                 ffmpeg.RootPath = "/usr/local/lib";
+                System.Console.WriteLine($"ffmpeg.RootPath:usr/local: {ffmpeg.RootPath}");
             }
             else
             {
                 ffmpeg.RootPath = AppContext.BaseDirectory;
+                System.Console.WriteLine($"ffmpeg.RootPath:base: {ffmpeg.RootPath}");
             }
+
+            System.Runtime.InteropServices.NativeLibrary.SetDllImportResolver(typeof(SDL2.SDL).Assembly, (libraryName, assembly, searchPath) =>
+            {
+                if (libraryName == "SDL2" || libraryName == "SDL2.dll")
+                {
+                    if (System.IO.File.Exists("/opt/homebrew/lib/libSDL2.dylib"))
+                        return System.Runtime.InteropServices.NativeLibrary.Load("/opt/homebrew/lib/libSDL2.dylib", assembly, searchPath);
+                    if (System.IO.File.Exists("/usr/local/lib/libSDL2.dylib"))
+                        return System.Runtime.InteropServices.NativeLibrary.Load("/usr/local/lib/libSDL2.dylib", assembly, searchPath);
+                }
+                return System.IntPtr.Zero;
+            });
         }
         else
         {

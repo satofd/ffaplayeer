@@ -75,16 +75,46 @@ public partial class MainWindow : Window
 
                 vm.OpenFileAction = async () =>
                 {
-                    var options = new Avalonia.Platform.Storage.FilePickerOpenOptions
+                    if (System.OperatingSystem.IsMacOS())
                     {
-                        Title = "Open Media File",
-                        AllowMultiple = true
-                    };
-                    var result = await StorageProvider.OpenFilePickerAsync(options);
-                    if (result != null && result.Count > 0)
+                        try
+                        {
+                            var process = new System.Diagnostics.Process
+                            {
+                                StartInfo = new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = "osascript",
+                                    RedirectStandardOutput = true,
+                                    UseShellExecute = false,
+                                    CreateNoWindow = true
+                                }
+                            };
+                            process.StartInfo.ArgumentList.Add("-e");
+                            process.StartInfo.ArgumentList.Add("POSIX path of (choose file with prompt \"Select Media File\")");
+                            process.Start();
+                            string output = await process.StandardOutput.ReadToEndAsync();
+                            await process.WaitForExitAsync();
+                            output = output.Trim();
+                            if (process.ExitCode == 0 && !string.IsNullOrEmpty(output))
+                            {
+                                vm.AddFilesToPlaylist(new[] { output }, clearExisting: true);
+                            }
+                        }
+                        catch { }
+                    }
+                    else
                     {
-                        var paths = result.Select(f => f.TryGetLocalPath()).Where(p => p != null).Cast<string>();
-                        vm.AddFilesToPlaylist(paths, clearExisting: true); // Replace existing queue
+                        var options = new Avalonia.Platform.Storage.FilePickerOpenOptions
+                        {
+                            Title = "Open Media File",
+                            AllowMultiple = false
+                        };
+                        var result = await StorageProvider.OpenFilePickerAsync(options);
+                        if (result != null && result.Count > 0)
+                        {
+                            var paths = result.Select(f => f.TryGetLocalPath()).Where(p => p != null).Cast<string>();
+                            vm.AddFilesToPlaylist(paths, clearExisting: true);
+                        }
                     }
                 };
 
